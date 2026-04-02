@@ -451,20 +451,23 @@ export default function GigsRepo() {
     </div>
 
     {/* Mobile View */}
-    <div className="lg:hidden flex flex-col w-full bg-[#111111] text-white min-h-[calc(100vh-60px)] pb-[100px] overflow-y-auto font-sans">
-      <div className="px-4 pt-6 pb-2">
-        <div className="flex justify-between items-center mb-1">
-          <h1 className="text-3xl font-black tracking-tighter">Professional Vault</h1>
-          <div className="flex gap-2">
+    <div className="lg:hidden flex flex-col w-full bg-[#111111] text-white min-h-[calc(100vh-60px)] pb-[100px] overflow-x-hidden font-sans">
+      <div className="px-4 pt-8 pb-4 bg-[#111111]/80 backdrop-blur-md sticky top-0 z-20 border-b border-white/5">
+        <div className="flex justify-between items-start mb-2 gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter leading-none break-words">Professional Vault</h1>
+            <p className="text-[9px] text-gray-500 tracking-[0.2em] uppercase mt-2 font-bold">Verified Attributes // Credentials</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="p-2 rounded-lg bg-[#00FFAB] text-black shadow-[0_0_10px_rgba(0,255,171,0.3)]"
+              className="p-2.5 rounded-xl bg-[#00FFAB] text-black shadow-[0_0_15px_rgba(0,255,171,0.4)] active:scale-95 transition-transform"
             >
               <Plus className="w-4 h-4" />
             </button>
             <button 
               onClick={() => setIsGrid(!isGrid)} 
-              className={`p-2 rounded-lg transition-all duration-300 relative ${isGrid ? 'bg-[#00FFAB]/20 text-[#00FFAB]' : 'bg-[#1A1A1A] text-gray-400'}`}
+              className={`p-2.5 rounded-xl transition-all duration-300 relative active:scale-95 ${isGrid ? 'bg-[#00FFAB]/20 text-[#00FFAB]' : 'bg-[#1A1A1A] text-gray-400'}`}
             >
               <AnimatePresence mode="wait">
                 {isGrid ? (
@@ -477,21 +480,13 @@ export default function GigsRepo() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              {isGrid && <motion.div layoutId="active-view" className="absolute inset-0 border-2 border-[#00FFAB] rounded-lg" />}
-            </button>
-            <button 
-              onClick={() => setIsImmersive(!isImmersive)} 
-              className={`p-2 rounded-lg transition-colors ${isImmersive ? 'bg-[#00FFAB]/20 text-[#00FFAB]' : 'bg-[#1A1A1A] text-gray-400'}`}
-            >
-              <Sparkles className="w-4 h-4" />
             </button>
           </div>
         </div>
-        <p className="text-[10px] text-gray-400 tracking-[0.2em] uppercase">Verified Attributes // Credentials</p>
       </div>
 
       {/* Category Pills */}
-      <div className="px-4 py-3 overflow-x-auto no-scrollbar flex gap-2">
+      <div className="px-4 py-4 overflow-x-auto no-scrollbar flex gap-2 border-b border-white/5 bg-[#0D0D0D]">
         <button 
           onClick={() => setActiveCategory('All')}
           className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all ${

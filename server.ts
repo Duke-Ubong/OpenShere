@@ -314,6 +314,7 @@ async function startServer() {
               id: Math.random().toString(36).substring(7),
               author: username,
               content: parsed.content,
+              attachment: parsed.attachment,
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               expiresAt,
               isOtr

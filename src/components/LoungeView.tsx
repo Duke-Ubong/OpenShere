@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, User, Settings, LogOut, Search, MoreVertical, Paperclip, AtSign, Smile, Send, ChevronLeft, ChevronRight, CheckCircle, Fingerprint, Activity, Lock, Users, Sliders, AlertTriangle, RefreshCw, Edit2, List } from 'lucide-react';
+import { Shield, User, Settings, LogOut, Search, MoreVertical, Paperclip, AtSign, Smile, Send, ChevronLeft, ChevronRight, CheckCircle, Fingerprint, Activity, Lock, Users, Sliders, AlertTriangle, RefreshCw, Edit2, List, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import CreateLoungeModal from './CreateLoungeModal';
@@ -198,7 +198,7 @@ const DirectoryView = ({ lounges, onJoin, onCreate }: { lounges: any[], onJoin: 
           <p className="text-gray-400 text-sm">Discover and join skill-gated professional environments.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <div className="relative" style={{ height: '50px', width: '342.354px' }}>
+          <div className="relative w-full md:w-[342px]" style={{ height: '50px' }}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input 
               type="text" 
@@ -362,6 +362,38 @@ const DashboardView = ({ lounge, user, onBack }: { lounge: any, user: any, onBac
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large (max 10MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'chat',
+          content: `Shared a file: ${file.name}`,
+          attachment: {
+            name: file.name,
+            type: file.type,
+            data: reader.result
+          },
+          isOtr: lounge.is_temporary
+        }));
+        toast.success(`Uploading ${file.name}...`);
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   useEffect(() => {
     let ws: WebSocket;
@@ -562,6 +594,22 @@ const DashboardView = ({ lounge, user, onBack }: { lounge: any, user: any, onBac
                   {!isMe && <span className="text-xs text-gray-400 ml-1 mb-1">{msg.author}</span>}
                   <div className={`relative px-4 py-2 rounded-2xl shadow-sm ${isMe ? 'bg-[#D4AF37] text-black rounded-tr-sm' : 'bg-[#111111] border border-gray-800 text-gray-200 rounded-tl-sm'}`}>
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                    {msg.attachment && (
+                      <div className={`mt-2 p-2 rounded border ${isMe ? 'bg-black/10 border-black/20' : 'bg-white/5 border-white/10'} flex items-center gap-2`}>
+                        <Paperclip className="w-4 h-4 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold truncate">{msg.attachment.name}</p>
+                          <p className="text-[8px] opacity-50 uppercase tracking-widest">{msg.attachment.type}</p>
+                        </div>
+                        <a 
+                          href={msg.attachment.data} 
+                          download={msg.attachment.name}
+                          className={`p-1 rounded hover:bg-white/10 transition-colors ${isMe ? 'text-black' : 'text-[#D4AF37]'}`}
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                    )}
                     <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-black/60' : 'text-gray-500'}`}>
                       {timeLeft !== null && (
                         <span className="text-[9px] font-mono font-bold animate-pulse text-red-600">
@@ -591,7 +639,13 @@ const DashboardView = ({ lounge, user, onBack }: { lounge: any, user: any, onBac
             <button onClick={() => toast('Emoji picker coming soon')} className="p-3 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-full hover:bg-white/5 shrink-0">
               <Smile className="w-6 h-6" />
             </button>
-            <button onClick={() => toast('File upload coming soon')} className="p-3 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-full hover:bg-white/5 shrink-0">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              className="hidden" 
+            />
+            <button onClick={() => fileInputRef.current?.click()} className="p-3 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-full hover:bg-white/5 shrink-0">
               <Paperclip className="w-6 h-6" />
             </button>
             <div className="flex-1 bg-[#1A1A1A] rounded-2xl border border-gray-800 focus-within:border-[#D4AF37]/50 transition-colors flex items-center min-h-[44px]">

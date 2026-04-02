@@ -1,0 +1,145 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "professional_bio": { "type": "string" },
+        "is_verified": { "type": "boolean" },
+        "exposure_dial": { "type": "number" },
+        "nodes": { "type": "number" },
+        "trust_score": { "type": "number" },
+        "following": { "type": "array", "items": { "type": "string" } },
+        "credentials": { "type": "array" },
+        "documents": { "type": "array" }
+      },
+      "required": ["id", "username", "email"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A feed post or gig",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "author": { "type": "string" },
+        "time": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["VIBE", "GIG", "SYSTEM"] },
+        "isUncensored": { "type": "boolean" },
+        "tag": { "type": "string" },
+        "intensityScore": { "type": "number" },
+        "stats": { "type": "object" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "readTime": { "type": "string" },
+        "image": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "authorId", "type", "createdAt"]
+    },
+    "Lounge": {
+      "title": "Lounge",
+      "description": "A private chat room",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "creator_id": { "type": "string" },
+        "skill_thresholds": { "type": "object" },
+        "is_temporary": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "creator_id"]
+    },
+    "Bounty": {
+      "title": "Bounty",
+      "description": "A gig or bounty",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "desc": { "type": "string" },
+        "price": { "type": "string" },
+        "currency": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "desc", "price", "currency"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "A document uploaded by a user",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "fileData": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "category", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "A private chat between two users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "lastMessageAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "participants", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "conversationId", "senderId", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Feed posts and gigs"
+    },
+    "/lounges/{loungeId}": {
+      "schema": { "$ref": "#/entities/Lounge" },
+      "description": "Private lounges"
+    },
+    "/bounties/{bountyId}": {
+      "schema": { "$ref": "#/entities/Bounty" },
+      "description": "Bounties"
+    },
+    "/documents/{documentId}": {
+      "schema": { "$ref": "#/entities/Document" },
+      "description": "Documents"
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Direct message conversations"
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Messages within a conversation"
+    }
+  }
+}

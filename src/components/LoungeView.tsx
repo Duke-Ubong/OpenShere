@@ -3,6 +3,8 @@ import { Shield, User, Settings, LogOut, Search, MoreVertical, Paperclip, AtSign
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import CreateLoungeModal from './CreateLoungeModal';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface LoungeViewProps {
   user: any;
@@ -18,7 +20,14 @@ const LoungeView: React.FC<LoungeViewProps> = ({ user, onClose }) => {
   const [verificationProgress, setVerificationProgress] = useState(0);
 
   useEffect(() => {
-    fetch('/api/lounges').then(res => res.json()).then(setLounges);
+    const q = query(collection(db, 'lounges'), orderBy('created_at', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loungesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLounges(loungesData);
+    }, (error) => {
+      console.error("Error fetching lounges:", error);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleJoinLounge = (lounge: any) => {
@@ -29,7 +38,7 @@ const LoungeView: React.FC<LoungeViewProps> = ({ user, onClose }) => {
   };
 
   const handleLoungeCreated = (newLounge: any) => {
-    setLounges([newLounge, ...lounges]);
+    // Handled by onSnapshot
   };
 
   // Simulate verification process

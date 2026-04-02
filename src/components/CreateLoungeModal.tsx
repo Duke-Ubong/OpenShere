@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface CreateLoungeModalProps {
   isOpen: boolean;
@@ -42,24 +44,20 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
     }, {} as Record<string, number>);
 
     try {
-      const response = await fetch('/api/create_lounge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          skill_thresholds,
-          is_temporary: isTemporary
-        })
-      });
-      
-      if (response.ok) {
-        const newLounge = await response.json();
-        onCreated(newLounge);
-        setName('');
-        setSkills([{ name: '', threshold: 50 }]);
-        setIsTemporary(false);
-        onClose();
-      }
+      const loungeData = {
+        name,
+        skill_thresholds,
+        is_temporary: isTemporary,
+        created_at: Date.now(),
+        members: 1,
+        active_users: 1
+      };
+      const docRef = await addDoc(collection(db, 'lounges'), loungeData);
+      onCreated({ id: docRef.id, ...loungeData });
+      setName('');
+      setSkills([{ name: '', threshold: 50 }]);
+      setIsTemporary(false);
+      onClose();
     } catch (error) {
       console.error('Failed to create lounge:', error);
     } finally {

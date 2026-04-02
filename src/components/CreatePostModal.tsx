@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Image as ImageIcon, FileText, Smile, MapPin, ShieldAlert, Zap, Briefcase, ChevronRight } from 'lucide-react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -66,11 +68,29 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, user }
 
     setIsSubmitting(true);
     
-    const postData: any = { type: postType };
+    const postData: any = { 
+      type: postType,
+      authorId: user?.id || 'anonymous',
+      authorName: user?.username || 'Anonymous',
+      author: `@${(user?.username || 'anonymous').toLowerCase().replace(/\s+/g, '_')}`,
+      time: 'Just now',
+      stats: { comments: 0, reVibes: 0, likes: 0 },
+      createdAt: Date.now()
+    };
+    
     if (postType === 'VIBE') {
       postData.content = content;
       postData.isUncensored = isUncensored;
-      if (tag.trim()) postData.tag = tag.trim();
+      postData.intensityScore = isUncensored ? Math.floor(Math.random() * 20) + 80 : Math.floor(Math.random() * 50) + 10;
+      
+      let generatedTag = tag.trim();
+      if (!generatedTag) {
+        const keywords = ['liquidity', 'market', 'scale', 'node', 'protocol', 'ai', 'crypto'];
+        const found = keywords.find(k => content.toLowerCase().includes(k));
+        generatedTag = found ? `SYS_${found.toUpperCase()}_DETECTED` : 'GENERAL_VIBE';
+      }
+      postData.tag = generatedTag;
+      
       if (imagePreview) {
         postData.image = imagePreview;
       }
@@ -78,23 +98,18 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, user }
       postData.title = title;
       postData.description = content;
       postData.category = category;
+      postData.readTime = `${Math.max(1, Math.floor(content.length / 200))} MIN READ`;
       if (imagePreview) {
         postData.image = imagePreview;
+      } else {
+        postData.image = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCxoGtN9S_Y9uyfT5FpumEGi_J48sIIRveFux9fgd3euxcUY3dzmNZbpzLrve3O3C3HFH1FMV-4D5P6h6z5GO9ovJb_0Ne0d4I949iQfEiu-2WWX1YHD_bV_YGdXFurFMrXYLPp3AZ9HcCbnNOdytSiS-Zty1ZNZeVtrGAknh78CUmlBi5CONtR_qvtyGloGNOyOqoRq5cpxkvQw_PfPQYz_o9vUZQa49HDspqO-t22eaYeTyFOw01t1nQyCHH0iCebAkK8zHhKhOA5';
       }
     }
 
     try {
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData)
-      });
-      
-      if (res.ok) {
-        const newPost = await res.json();
-        onPostCreated(newPost);
-        handleClose();
-      }
+      const docRef = await addDoc(collection(db, 'posts'), postData);
+      onPostCreated({ id: docRef.id, ...postData });
+      handleClose();
     } catch (error) {
       console.error("Failed to create post", error);
     } finally {

@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FlaskConical, Award, BookOpen, UploadCloud, Trophy, Archive, Trash2, Filter, Search, CheckCircle2, ShieldCheck, Layers, Menu, Terminal, ChevronRight, Star, Plus, Sparkles, LayoutGrid, List, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import { addDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const GIGS_REPO_DATA = [
   {
@@ -110,10 +112,39 @@ export default function GigsRepo() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    // Simulate initial data fetch
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    const q = query(collection(db, 'documents'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          category: data.category,
+          displayId: `DOC_ID: ${doc.id.substring(0, 6).toUpperCase()}`,
+          date: new Date(data.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
+          title1: data.title.toUpperCase(),
+          titleHighlight: '',
+          title2: '',
+          description: `Verification of ${data.category.toLowerCase()}...`,
+          tags: data.tags || ['New', data.category],
+          issueDate: new Date(data.createdAt).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }),
+          issuer: 'User Upload',
+          expires: 'N/A',
+          summary: `User-uploaded document for ${data.category}. Status: PENDING.`,
+          trust: {
+            identity: 'UPLOAD-HASH: VERIFIED',
+            chain: 'PENDING_VALIDATION',
+            registry: 'STATUS: LOGGED'
+          }
+        };
+      });
+      setDocuments([...docs, ...GIGS_REPO_DATA]);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching documents:", error);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,48 +166,20 @@ export default function GigsRepo() {
 
     setIsUploading(true);
     try {
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: uploadTitle,
-          category: uploadCategory,
-          fileData: uploadFile,
-          tags: ['New', uploadCategory]
-        })
+      await addDoc(collection(db, 'documents'), {
+        title: uploadTitle,
+        category: uploadCategory,
+        fileData: uploadFile,
+        tags: ['New', uploadCategory],
+        createdAt: Date.now()
       });
 
-      if (res.ok) {
-        const newDoc = await res.json();
-        // Adapt to GIGS_REPO_DATA format for UI
-        const formattedDoc = {
-          ...newDoc,
-          displayId: `DOC_ID: ${newDoc.id.toUpperCase()}`,
-          date: new Date(newDoc.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
-          title1: newDoc.title.toUpperCase(),
-          titleHighlight: '',
-          title2: '',
-          description: `Verification of ${newDoc.category.toLowerCase()}...`,
-          issueDate: new Date(newDoc.date).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }),
-          issuer: 'User Upload',
-          expires: 'N/A',
-          summary: `User-uploaded document for ${newDoc.category}. Status: ${newDoc.status}.`,
-          trust: {
-            identity: 'UPLOAD-HASH: VERIFIED',
-            chain: 'PENDING_VALIDATION',
-            registry: 'STATUS: LOGGED'
-          }
-        };
-        setDocuments(prev => [formattedDoc, ...prev]);
-        toast.success('Document uploaded for verification');
-        setIsUploadModalOpen(false);
-        // Reset form
-        setUploadTitle('');
-        setUploadCategory('Certifications');
-        setUploadFile(null);
-      } else {
-        toast.error('Failed to upload document');
-      }
+      toast.success('Document uploaded for verification');
+      setIsUploadModalOpen(false);
+      // Reset form
+      setUploadTitle('');
+      setUploadCategory('Certifications');
+      setUploadFile(null);
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('An error occurred during upload');
@@ -453,7 +456,7 @@ export default function GigsRepo() {
     {/* Mobile View */}
     <div className="lg:hidden flex flex-col w-full bg-[#111111] text-white min-h-[calc(100vh-60px)] pb-[100px] overflow-x-hidden font-sans">
       <div className="px-4 pt-8 pb-4 bg-[#111111]/80 backdrop-blur-md sticky top-0 z-20 border-b border-white/5">
-        <div className="flex justify-between items-start mb-2 gap-4">
+        <div className="flex justify-between items-start mb-4 gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tighter leading-none break-words">Professional Vault</h1>
             <p className="text-[9px] text-gray-500 tracking-[0.2em] uppercase mt-2 font-bold">Verified Attributes // Credentials</p>
@@ -482,6 +485,16 @@ export default function GigsRepo() {
               </AnimatePresence>
             </button>
           </div>
+        </div>
+        <div className="relative bg-[#1A1A1A] rounded flex items-center px-4 py-3">
+          <Search className="w-4 h-4 text-gray-500 mr-3" />
+          <input 
+            type="text" 
+            placeholder="SEARCH REPOSITORY..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none text-xs tracking-widest text-white placeholder:text-gray-600 w-full"
+          />
         </div>
       </div>
 

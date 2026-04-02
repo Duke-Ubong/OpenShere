@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, MessageSquare, RefreshCw, Heart, Monitor, Zap, Lightbulb, User, BarChart2, DollarSign, Settings, HelpCircle, LogOut, Grid, Plus, Menu, X, Shield, ChevronLeft, ChevronRight, Search, Bell, Database, CheckCircle2, Radio, Briefcase, Store, ShieldCheck } from 'lucide-react';
+import { Edit2, MessageSquare, RefreshCw, Heart, Monitor, Zap, Lightbulb, User, BarChart2, DollarSign, Settings, HelpCircle, LogOut, Grid, Plus, Menu, X, Shield, ChevronLeft, ChevronRight, Search, Bell, Database, CheckCircle2, Radio, Briefcase, Store, ShieldCheck, Trash2, Send } from 'lucide-react';
 import GigsRepo from './components/GigsRepo';
 import CreatePostModal from './components/CreatePostModal';
 import LoungeView from './components/LoungeView';
 import CreateBountyModal from './components/CreateBountyModal';
 import WelcomeScreen from './components/WelcomeScreen';
+import DirectMessages from './components/DirectMessages';
 import { AnimatePresence, motion } from 'motion/react';
+import { Toaster, toast } from 'sonner';
+
+// Firebase imports
+import { auth, db } from './firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, deleteDoc, where, limit, setDoc } from 'firebase/firestore';
 
 // Types
 interface UserData {
@@ -22,8 +29,10 @@ interface UserData {
   documents: Array<{ id: string; title: string; category: string; date: string; status: string; tags: string[] }>;
 }
 
+import { seedDatabase } from './seed';
+
 interface Post {
-  id: number;
+  id: string;
   authorId?: string;
   type: 'VIBE' | 'GIG' | 'SYSTEM';
   isUncensored?: boolean;
@@ -41,9 +50,16 @@ interface Post {
   category?: string;
   readTime?: string;
   image?: string;
+  createdAt?: number;
 }
 
-const PostCard: React.FC<{ post: Post, currentUser: UserData | null, onFollowToggle: (targetId: string) => void }> = ({ post, currentUser, onFollowToggle }) => {
+const PostCard: React.FC<{ 
+  post: Post, 
+  currentUser: UserData | null, 
+  onFollowToggle: (targetId: string) => void,
+  onDelete: (postId: string) => void,
+  onStartDM: (userId: string) => void
+}> = ({ post, currentUser, onFollowToggle, onDelete, onStartDM }) => {
   const isVibe = post.type === 'VIBE';
   const isSystem = post.type === 'SYSTEM';
   
@@ -53,7 +69,7 @@ const PostCard: React.FC<{ post: Post, currentUser: UserData | null, onFollowTog
   const [reVibesCount, setReVibesCount] = useState(post.stats?.reVibes || 0);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const isFollowing = currentUser?.following.includes(post.authorId || '');
+  const isFollowing = currentUser?.following?.includes(post.authorId || '');
   const isMe = currentUser?.id === post.authorId;
 
   const handleLike = () => {
@@ -107,12 +123,20 @@ const PostCard: React.FC<{ post: Post, currentUser: UserData | null, onFollowTog
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-3">
-          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0">
+          <div 
+            onClick={() => !isMe && post.authorId && onStartDM(post.authorId)}
+            className={`w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0 ${!isMe ? 'cursor-pointer hover:brightness-110 transition-all' : ''}`}
+          >
             {isVibe ? <Zap className="w-5 h-5 text-primary-container" /> : <Lightbulb className="w-5 h-5 text-primary-container" />}
           </div>
           <div>
             <div className="font-bold text-on-surface text-sm flex items-center gap-2">
-              {post.authorName || 'User'}
+              <span 
+                onClick={() => !isMe && post.authorId && onStartDM(post.authorId)}
+                className={!isMe ? 'cursor-pointer hover:text-primary-container transition-colors' : ''}
+              >
+                {post.authorName || 'User'}
+              </span>
               {!isMe && !isSystem && post.authorId && (
                 <button 
                   onClick={() => onFollowToggle(post.authorId!)}
@@ -125,7 +149,18 @@ const PostCard: React.FC<{ post: Post, currentUser: UserData | null, onFollowTog
             <div className="text-xs text-outline">{post.author || '@user'}</div>
           </div>
         </div>
-        <div className="text-xs text-outline">{post.time || 'Just now'}</div>
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-outline">{post.time || 'Just now'}</div>
+          {isMe && (
+            <button 
+              onClick={() => onDelete(post.id)}
+              className="text-outline hover:text-[#FF3B30] transition-colors p-1 rounded-full hover:bg-[#FF3B30]/10"
+              title="Delete Post"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
       
       {post.title && <h3 className="font-bold text-on-surface text-lg mb-2">{post.title}</h3>}
@@ -195,8 +230,6 @@ const PostCard: React.FC<{ post: Post, currentUser: UserData | null, onFollowTog
   );
 };
 
-import { Toaster, toast } from 'sonner';
-
 export default function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
@@ -214,26 +247,88 @@ export default function App() {
 
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs'>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Bounties State
   const [isBountyModalOpen, setIsBountyModalOpen] = useState(false);
-  const [bounties, setBounties] = useState([
-    { title: "Smart Contract Audit", desc: "Looking for a senior Rust developer to audit a DeFi protocol.", price: "$5,000", currency: "USDC" },
-    { title: "Frontend Architecture", desc: "Need a React expert to refactor a complex dashboard application.", price: "$3,200", currency: "USD" },
-    { title: "Technical Whitepaper", desc: "Seeking a technical writer for a Layer 2 scaling solution whitepaper.", price: "$1,500", currency: "USDT" }
-  ]);
+  const [bounties, setBounties] = useState<any[]>([]);
+
+  const handleBountyCreated = async (bounty: any) => {
+    try {
+      await addDoc(collection(db, 'bounties'), {
+        ...bounty,
+        createdAt: Date.now()
+      });
+      toast.success('Bounty posted successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to post bounty');
+    }
+  };
 
   useEffect(() => {
-    fetch('/api/users/me')
-      .then(res => res.json())
-      .then(data => {
-        setUser(data);
-      });
+    let unsubscribeUser: (() => void) | null = null;
 
-    fetch('/api/posts')
-      .then(res => res.json())
-      .then(data => setPosts(data));
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (unsubscribeUser) {
+        unsubscribeUser();
+        unsubscribeUser = null;
+      }
+
+      if (firebaseUser) {
+        seedDatabase(); // Ensure mock data exists
+        unsubscribeUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setUser(docSnap.data() as UserData);
+          } else {
+            // Fallback to mock user if not found in db but logged in (test login)
+            getDoc(doc(db, 'users', 'user-1')).then(mockUserDoc => {
+              if (mockUserDoc.exists()) {
+                setUser(mockUserDoc.data() as UserData);
+              }
+            });
+          }
+        }, (error) => {
+          console.error("Error fetching user:", error);
+        });
+      } else {
+        setUser(null);
+        setShowWelcome(true);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUser) {
+        unsubscribeUser();
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const qPosts = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const unsubscribePosts = onSnapshot(qPosts, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+      setPosts(postsData);
+    }, (error) => {
+      console.error("Error fetching posts:", error);
+    });
+
+    const qBounties = query(collection(db, 'bounties'), orderBy('createdAt', 'desc'));
+    const unsubscribeBounties = onSnapshot(qBounties, (snapshot) => {
+      const bountiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setBounties(bountiesData);
+    }, (error) => {
+      console.error("Error fetching bounties:", error);
+    });
+
+    return () => {
+      unsubscribePosts();
+      unsubscribeBounties();
+    };
+  }, [user]);
 
   const openEditProfile = () => {
     if (user) {
@@ -246,43 +341,131 @@ export default function App() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/users/me', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
         username: editUsername,
         professional_bio: editBio,
         is_verified: editIsVerified
-      })
-    });
-    if (res.ok) {
-      const updatedUser = await res.json();
-      setUser(updatedUser);
+      });
+      setUser({ ...user, username: editUsername, professional_bio: editBio, is_verified: editIsVerified });
       setIsEditProfileOpen(false);
+      toast.success('Profile updated');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to update profile');
     }
   };
 
   const handleFollowToggle = async (targetId: string) => {
-    const res = await fetch('/api/follow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetId })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (user) {
-        setUser({ ...user, following: data.following });
-        toast(data.following.includes(targetId) ? 'Following user' : 'Unfollowed user');
+    if (!user) return;
+    const isFollowing = user.following?.includes(targetId);
+    try {
+      const userRef = doc(db, 'users', user.id);
+      if (isFollowing) {
+        await updateDoc(userRef, {
+          following: arrayRemove(targetId)
+        });
+        setUser({ ...user, following: user.following.filter(id => id !== targetId) });
+        toast.success('Unfollowed user');
+      } else {
+        await updateDoc(userRef, {
+          following: arrayUnion(targetId)
+        });
+        setUser({ ...user, following: [...(user.following || []), targetId] });
+        toast.success('Following user');
       }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to update follow status');
     }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, 'posts', postId));
+      toast.success('Post deleted');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete post');
+    }
+  };
+
+  const [isDMOpen, setIsDMOpen] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'conversations'),
+      where('participants', 'array-contains', user.id),
+      orderBy('updatedAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setConversations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleStartDM = async (otherUserId: string) => {
+    if (!user) return;
+    if (user.id === otherUserId) return;
+
+    // Check if conversation already exists
+    const existing = conversations.find(c => c.participants.includes(otherUserId));
+    if (existing) {
+      setActiveConversationId(existing.id);
+      setIsDMOpen(true);
+      return;
+    }
+
+    try {
+      const convId = [user.id, otherUserId].sort().join('_');
+      const convRef = doc(db, 'conversations', convId);
+      const convSnap = await getDoc(convRef);
+      
+      if (!convSnap.exists()) {
+        await setDoc(convRef, {
+          id: convId,
+          participants: [user.id, otherUserId],
+          updatedAt: Date.now(),
+          lastMessage: '',
+          lastMessageAt: 0
+        });
+      }
+      setActiveConversationId(convId);
+      setIsDMOpen(true);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to start conversation');
+    }
+  };
+
+  const handleLogout = () => {
+    signOut(auth).then(() => {
+      setShowWelcome(true);
+    });
   };
 
   // Filtering logic:
   // Gigs are always visible. Vibe posts are filtered based on uncensored toggle and feed type.
   const visiblePosts = posts.filter(post => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = 
+        post.content?.toLowerCase().includes(query) || 
+        post.title?.toLowerCase().includes(query) || 
+        post.authorName?.toLowerCase().includes(query) ||
+        post.tag?.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+    
     if (post.type === 'GIG') return true;
     if (post.isUncensored && !showUncensored) return false;
-    if (feedType === 'following' && post.authorId !== 'system' && post.authorId !== user?.id && !user?.following.includes(post.authorId || '')) return false;
+    if (feedType === 'following' && post.authorId !== 'system' && post.authorId !== user?.id && !user?.following?.includes(post.authorId || '')) return false;
     return true;
   });
 
@@ -311,11 +494,24 @@ export default function App() {
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center bg-surface-container-lowest px-3 py-1.5 rounded-lg border-b border-primary-container/30">
             <Search className="w-4 h-4 text-outline mr-2" />
-            <input className="bg-transparent border-none focus:outline-none text-sm font-label uppercase tracking-widest text-on-surface-variant placeholder:text-outline/50 w-48" placeholder="Search Terminal..." type="text" />
+            <input 
+              className="bg-transparent border-none focus:outline-none text-sm font-label uppercase tracking-widest text-on-surface-variant placeholder:text-outline/50 w-48" 
+              placeholder="Search Terminal..." 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <div className="flex gap-3 text-[#E5E2E1]">
+            <Search onClick={() => {
+              const searchBar = document.querySelector('input[placeholder="Search Terminal..."]') as HTMLInputElement;
+              if (searchBar) {
+                searchBar.parentElement?.classList.toggle('hidden');
+                searchBar.focus();
+              }
+            }} className="w-5 h-5 sm:hidden hover:text-[#00FFAB] cursor-pointer transition-colors" />
             <Bell onClick={() => toast('No new notifications')} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
-            <MessageSquare onClick={() => setIsLoungeOpen(true)} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
+            <MessageSquare onClick={() => setIsDMOpen(true)} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
             <User onClick={() => setCurrentView('profile')} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
           </div>
         </div>
@@ -361,6 +557,10 @@ export default function App() {
                 <Shield className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">The Lounge</span>}
               </button>
+              <button onClick={() => setIsDMOpen(true)} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-[#00FFAB] hover:bg-[#00FFAB]/10 border border-transparent hover:border-[#00FFAB]/30`}>
+                <MessageSquare className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Direct Messages</span>}
+              </button>
             </nav>
             <button 
               onClick={() => setIsModalOpen(true)}
@@ -377,6 +577,10 @@ export default function App() {
             <button onClick={() => toast('Support center coming soon')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-[#B5C8DF] hover:text-[#00FFAB] transition-all`}>
               <HelpCircle className="w-4 h-4" />
               {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Support</span>}
+            </button>
+            <button onClick={handleLogout} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-[#FF3B30] hover:text-[#FF3B30]/80 transition-all`}>
+              <LogOut className="w-4 h-4" />
+              {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Log Out</span>}
             </button>
             <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -428,7 +632,14 @@ export default function App() {
               <div className="space-y-4">
                 <AnimatePresence>
                 {vibePosts.map(post => (
-                  <PostCard key={post.id} post={post} currentUser={user} onFollowToggle={handleFollowToggle} />
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    currentUser={user} 
+                    onFollowToggle={handleFollowToggle} 
+                    onDelete={handleDeletePost}
+                    onStartDM={handleStartDM}
+                  />
                 ))}
                 </AnimatePresence>
                 {vibePosts.length === 0 && (
@@ -451,7 +662,14 @@ export default function App() {
               <div className="grid grid-cols-1 gap-4">
                 <AnimatePresence>
                 {gigPosts.map(post => (
-                  <PostCard key={post.id} post={post} currentUser={user} onFollowToggle={handleFollowToggle} />
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    currentUser={user} 
+                    onFollowToggle={handleFollowToggle} 
+                    onDelete={handleDeletePost}
+                    onStartDM={handleStartDM}
+                  />
                 ))}
                 </AnimatePresence>
               </div>
@@ -476,7 +694,16 @@ export default function App() {
               </header>
               <div className="space-y-4">
                 <AnimatePresence>
-                {visiblePosts.map(post => <PostCard key={post.id} post={post} currentUser={user} onFollowToggle={handleFollowToggle} />)}
+                {visiblePosts.map(post => (
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    currentUser={user} 
+                    onFollowToggle={handleFollowToggle} 
+                    onDelete={handleDeletePost}
+                    onStartDM={handleStartDM}
+                  />
+                ))}
                 </AnimatePresence>
                 {visiblePosts.length === 0 && (
                   <div className="text-center p-8 text-outline font-label text-sm">
@@ -686,9 +913,19 @@ export default function App() {
                   <h2 className="font-headline text-3xl font-black text-primary tracking-tighter">Bounty Board</h2>
                   <p className="font-label text-xs text-secondary tracking-widest uppercase mt-2">Open contracts and gigs</p>
                 </div>
-                <button onClick={() => setIsBountyModalOpen(true)} className="bg-primary-container text-on-primary-fixed px-6 py-3 rounded font-label uppercase tracking-widest text-xs font-bold hover:bg-primary-fixed-dim transition-colors shadow-[0_0_15px_rgba(0,255,171,0.2)]">
-                  Post Bounty
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-[300px]" style={{ height: '44px' }}>
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                    <input 
+                      type="text" 
+                      placeholder="Search bounties..." 
+                      className="w-full h-full bg-surface-container-low border border-outline-variant/30 rounded-xl pl-10 pr-4 text-sm text-on-surface focus:outline-none focus:border-primary-container transition-colors"
+                    />
+                  </div>
+                  <button onClick={() => setIsBountyModalOpen(true)} className="bg-primary-container text-on-primary-fixed px-6 h-[44px] rounded font-label uppercase tracking-widest text-xs font-bold hover:bg-primary-fixed-dim transition-colors shadow-[0_0_15px_rgba(0,255,171,0.2)] shrink-0">
+                    Post Bounty
+                  </button>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 gap-4">
@@ -821,7 +1058,7 @@ export default function App() {
       <CreatePostModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onPostCreated={(newPost) => setPosts([newPost, ...posts])}
+        onPostCreated={() => {}}
         user={user}
       />
 
@@ -832,8 +1069,19 @@ export default function App() {
         <CreateBountyModal
           isOpen={isBountyModalOpen}
           onClose={() => setIsBountyModalOpen(false)}
-          onBountyCreated={(newBounty) => setBounties([newBounty, ...bounties])}
+          onBountyCreated={handleBountyCreated}
         />
+
+        <DirectMessages 
+          isOpen={isDMOpen} 
+          onClose={() => setIsDMOpen(false)} 
+          currentUser={user} 
+          activeConversationId={activeConversationId}
+          setActiveConversationId={setActiveConversationId}
+          conversations={conversations}
+        />
+
+        <Toaster position="bottom-right" theme="dark" />
         </motion.div>
       )}
     </AnimatePresence>

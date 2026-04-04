@@ -33,7 +33,7 @@ import { seedDatabase } from './seed';
 interface Post {
   id: string;
   authorId?: string;
-  type: 'VIBE' | 'GIG' | 'SYSTEM';
+  type: 'VIBE' | 'GIG' | 'SYSTEM' | 'RE_VIBE';
   isUncensored?: boolean;
   // VIBE fields
   authorName?: string;
@@ -43,6 +43,8 @@ interface Post {
   tag?: string;
   intensityScore?: number;
   stats?: { comments?: number; reVibes?: number; likes?: number; nodes?: number };
+  likedBy?: string[];
+  reVibedBy?: string[];
   // GIG fields
   title?: string;
   description?: string;
@@ -50,6 +52,18 @@ interface Post {
   readTime?: string;
   image?: string;
   createdAt?: number;
+  // RE_VIBE fields
+  originalPostId?: string;
+  originalAuthorName?: string;
+}
+
+interface Comment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: any;
+  likedBy?: string[];
 }
 
 const PostCard: React.FC<{ 
@@ -57,38 +71,75 @@ const PostCard: React.FC<{
   currentUser: UserData | null, 
   onFollowToggle: (targetId: string) => void,
   onDelete: (postId: string) => void,
-  onStartDM: (userId: string) => void
-}> = ({ post, currentUser, onFollowToggle, onDelete, onStartDM }) => {
-  const isVibe = post.type === 'VIBE';
+  onStartDM: (userId: string) => void,
+  onReVibe: (post: Post) => void,
+  onLike: (postId: string, isLiked: boolean) => void,
+  onComment: (postId: string, content: string) => void
+}> = ({ post, currentUser, onFollowToggle, onDelete, onStartDM, onReVibe, onLike, onComment }) => {
+  const isVibe = post.type === 'VIBE' || post.type === 'RE_VIBE';
   const isSystem = post.type === 'SYSTEM';
   
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.stats?.likes || 0);
-  const [isReVibed, setIsReVibed] = useState(false);
-  const [reVibesCount, setReVibesCount] = useState(post.stats?.reVibes || 0);
+  const [isLiked, setIsLiked] = useState(post.likedBy?.includes(currentUser?.id || '') || false);
+  const [likesCount, setLikesCount] = useState(post.stats?.likes || post.likedBy?.length || 0);
+  const [isReVibed, setIsReVibed] = useState(post.reVibedBy?.includes(currentUser?.id || '') || false);
+  const [reVibesCount, setReVibesCount] = useState(post.stats?.reVibes || post.reVibedBy?.length || 0);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<Comment[]>([]);
+
+  useEffect(() => {
+    setIsLiked(post.likedBy?.includes(currentUser?.id || '') || false);
+    setLikesCount(post.stats?.likes || post.likedBy?.length || 0);
+    setIsReVibed(post.reVibedBy?.includes(currentUser?.id || '') || false);
+    setReVibesCount(post.stats?.reVibes || post.reVibedBy?.length || 0);
+  }, [post.likedBy, post.reVibedBy, post.stats, currentUser?.id]);
+
+  useEffect(() => {
+    if (showComments) {
+      const q = query(collection(db, 'posts', post.id, 'comments'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment)));
+      });
+      return () => unsubscribe();
+    }
+  }, [showComments, post.id]);
 
   const isFollowing = currentUser?.following?.includes(post.authorId || '');
   const isMe = currentUser?.id === post.authorId;
 
   const handleLike = () => {
-    if (isLiked) {
-      setLikesCount(prev => prev - 1);
-      setIsLiked(false);
-    } else {
-      setLikesCount(prev => prev + 1);
-      setIsLiked(true);
-    }
+    const newLiked = !isLiked;
+    setIsLiked(newLiked);
+    setLikesCount(prev => newLiked ? prev + 1 : prev - 1);
+    onLike(post.id, newLiked);
   };
 
   const handleReVibe = () => {
-    if (isReVibed) {
-      setReVibesCount(prev => prev - 1);
-      setIsReVibed(false);
-    } else {
-      setReVibesCount(prev => prev + 1);
-      setIsReVibed(true);
+    if (isReVibed) return; // Only allow one re-vibe for now
+    setIsReVibed(true);
+    setReVibesCount(prev => prev + 1);
+    onReVibe(post);
+  };
+
+  const handleLikeComment = async (commentId: string, currentLikedBy: string[] = []) => {
+    if (!currentUser) return;
+    const isCommentLiked = currentLikedBy.includes(currentUser.id);
+    try {
+      const commentRef = doc(db, 'posts', post.id, 'comments', commentId);
+      await updateDoc(commentRef, {
+        likedBy: isCommentLiked ? arrayRemove(currentUser.id) : arrayUnion(currentUser.id)
+      });
+    } catch (error) {
+      console.error('Error liking comment:', error);
     }
+  };
+
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    onComment(post.id, commentText);
+    setCommentText('');
   };
 
   if (isSystem) {
@@ -162,6 +213,12 @@ const PostCard: React.FC<{
         </div>
       </div>
       
+      {post.type === 'RE_VIBE' && (
+        <div className="mb-2 flex items-center gap-2 text-[10px] font-bold text-primary-container uppercase tracking-widest">
+          <RefreshCw className="w-3 h-3" /> Re-vibed from {post.originalAuthorName}
+        </div>
+      )}
+      
       {post.title && <h3 className="font-bold text-on-surface text-lg mb-2">{post.title}</h3>}
       <p className="text-on-surface-variant text-sm mb-3">
         {isVibe ? post.content : (isExpanded ? (post.content || post.description + " [Full content expanded...]") : post.description)}
@@ -188,34 +245,91 @@ const PostCard: React.FC<{
       )}
       
       {isVibe ? (
-        <div className="flex gap-6 text-secondary-fixed-dim text-xs">
-          <span 
-            onClick={() => toast('Reply interface coming soon')}
-            className="flex items-center gap-1.5 cursor-pointer hover:text-primary-container transition-all active:scale-90 group"
-          >
-            <div className="p-1.5 rounded-full group-hover:bg-primary-container/10 transition-colors">
-              <MessageSquare className="w-4 h-4"/>
-            </div>
-            {post.stats?.comments || 0}
-          </span>
-          <span 
-            onClick={handleReVibe} 
-            className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isReVibed ? 'text-[#00FFAB] drop-shadow-[0_0_8px_rgba(0,255,171,0.5)]' : 'hover:text-[#00FFAB]'}`}
-          >
-            <div className={`p-1.5 rounded-full group-hover:bg-[#00FFAB]/10 transition-colors ${isReVibed ? 'bg-[#00FFAB]/10' : ''}`}>
-              <RefreshCw className={`w-4 h-4 ${isReVibed ? 'animate-spin-slow' : ''}`}/>
-            </div>
-            {reVibesCount}
-          </span>
-          <span 
-            onClick={handleLike} 
-            className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isLiked ? 'text-[#FF3B30] drop-shadow-[0_0_12px_rgba(255,59,48,0.8)]' : 'hover:text-[#FF3B30]'}`}
-          >
-            <div className={`p-1.5 rounded-full group-hover:bg-[#FF3B30]/10 transition-colors ${isLiked ? 'bg-[#FF3B30]/10' : ''}`}>
-              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`}/>
-            </div>
-            {likesCount}
-          </span>
+        <div className="space-y-4">
+          <div className="flex gap-6 text-secondary-fixed-dim text-xs">
+            <span 
+              onClick={() => setShowComments(!showComments)}
+              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${showComments ? 'text-primary-container' : 'hover:text-primary-container'}`}
+            >
+              <div className={`p-1.5 rounded-full group-hover:bg-primary-container/10 transition-colors ${showComments ? 'bg-primary-container/10' : ''}`}>
+                <MessageSquare className="w-4 h-4"/>
+              </div>
+              {post.stats?.comments || 0}
+            </span>
+            <span 
+              onClick={handleReVibe} 
+              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isReVibed ? 'text-[#00FFAB] drop-shadow-[0_0_8px_rgba(0,255,171,0.5)]' : 'hover:text-[#00FFAB]'}`}
+            >
+              <div className={`p-1.5 rounded-full group-hover:bg-[#00FFAB]/10 transition-colors ${isReVibed ? 'bg-[#00FFAB]/10' : ''}`}>
+                <RefreshCw className={`w-4 h-4 ${isReVibed ? 'animate-spin-slow' : ''}`}/>
+              </div>
+              {reVibesCount}
+            </span>
+            <span 
+              onClick={handleLike} 
+              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isLiked ? 'text-[#FF3B30] drop-shadow-[0_0_12px_rgba(255,59,48,0.8)]' : 'hover:text-[#FF3B30]'}`}
+            >
+              <div className={`p-1.5 rounded-full group-hover:bg-[#FF3B30]/10 transition-colors ${isLiked ? 'bg-[#FF3B30]/10' : ''}`}>
+                <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`}/>
+              </div>
+              {likesCount}
+            </span>
+          </div>
+
+          <AnimatePresence>
+            {showComments && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden pt-2 border-t border-outline-variant/10"
+              >
+                <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
+                  <input 
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary-container transition-all"
+                  />
+                  <button type="submit" className="p-1.5 bg-primary-container text-on-primary-container rounded-lg hover:brightness-110 transition-all">
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+
+                <div className="space-y-3 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                  {comments.map(comment => {
+                    const isCommentLiked = comment.likedBy?.includes(currentUser?.id || '');
+                    return (
+                      <div key={comment.id} className="flex gap-2 group">
+                        <div className="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+                          <User className="w-3 h-3 text-outline" />
+                        </div>
+                        <div className="flex-1 bg-surface-container-low p-2 rounded-lg">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] font-bold text-primary-container">{comment.authorName}</span>
+                            <span className="text-[8px] text-outline">{comment.createdAt?.toDate ? new Date(comment.createdAt.toDate()).toLocaleDateString() : 'Just now'}</span>
+                          </div>
+                          <p className="text-[11px] text-on-surface-variant">{comment.content}</p>
+                        </div>
+                        <button 
+                          onClick={() => handleLikeComment(comment.id, comment.likedBy)}
+                          className={`flex items-center gap-1 text-[10px] transition-colors p-1 rounded hover:bg-surface-container-highest ${isCommentLiked ? 'text-[#FF3B30]' : 'text-outline hover:text-[#FF3B30]'}`}
+                        >
+                          <Heart className={`w-3 h-3 ${isCommentLiked ? 'fill-current' : ''}`} />
+                          {comment.likedBy?.length || 0}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {comments.length === 0 && (
+                    <div className="text-center py-4 text-[10px] text-outline uppercase tracking-widest opacity-50">
+                      No comments yet
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : (
         <div className="flex justify-between items-center text-xs text-secondary-fixed-dim font-mono uppercase">
@@ -251,6 +365,7 @@ export default function App() {
   // Bounties State
   const [isBountyModalOpen, setIsBountyModalOpen] = useState(false);
   const [bounties, setBounties] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
 
   const handleBountyCreated = async (bounty: any) => {
     try {
@@ -320,9 +435,17 @@ export default function App() {
       console.error("Error fetching bounties:", error);
     });
 
+    const qUsers = query(collection(db, 'users'), limit(100));
+    const unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
+      setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData)));
+    }, (error) => {
+      console.error("Error fetching users:", error);
+    });
+
     return () => {
       unsubscribePosts();
       unsubscribeBounties();
+      unsubscribeUsers();
     };
   }, [user]);
 
@@ -446,6 +569,81 @@ export default function App() {
     setShowWelcome(true);
   };
 
+  const handleLikePost = async (postId: string, isLiked: boolean) => {
+    if (!user) return;
+    try {
+      const postRef = doc(db, 'posts', postId);
+      const post = posts.find(p => p.id === postId);
+      const currentLikes = post?.stats?.likes || post?.likedBy?.length || 0;
+      
+      await updateDoc(postRef, {
+        'stats.likes': isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1),
+        likedBy: isLiked ? arrayUnion(user.id) : arrayRemove(user.id)
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleReVibePost = async (originalPost: Post) => {
+    if (!user) return;
+    try {
+      const postData = {
+        type: 'RE_VIBE',
+        authorId: user.id,
+        authorName: user.username,
+        author: `@${user.username.toLowerCase().replace(/\s+/g, '_')}`,
+        content: originalPost.content,
+        originalPostId: originalPost.id,
+        originalAuthorName: originalPost.authorName,
+        tag: originalPost.tag,
+        intensityScore: originalPost.intensityScore,
+        stats: { comments: 0, reVibes: 0, likes: 0 },
+        likedBy: [],
+        reVibedBy: [],
+        createdAt: Date.now()
+      };
+      await addDoc(collection(db, 'posts'), postData);
+      
+      // Update original post reVibes count
+      const originalRef = doc(db, 'posts', originalPost.id);
+      const currentReVibes = originalPost.stats?.reVibes || originalPost.reVibedBy?.length || 0;
+      await updateDoc(originalRef, {
+        'stats.reVibes': currentReVibes + 1,
+        reVibedBy: arrayUnion(user.id)
+      });
+      
+      toast.success('Re-vibed successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to re-vibe');
+    }
+  };
+
+  const handleCommentPost = async (postId: string, content: string) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'posts', postId, 'comments'), {
+        authorId: user.id,
+        authorName: user.username,
+        content,
+        createdAt: serverTimestamp()
+      });
+      
+      // Update post comments count
+      const postRef = doc(db, 'posts', postId);
+      const post = posts.find(p => p.id === postId);
+      await updateDoc(postRef, {
+        'stats.comments': (post?.stats?.comments || 0) + 1
+      });
+      
+      toast.success('Comment added');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to add comment');
+    }
+  };
+
   // Filtering logic:
   // Gigs are always visible. Vibe posts are filtered based on uncensored toggle and feed type.
   const visiblePosts = posts.filter(post => {
@@ -487,7 +685,7 @@ export default function App() {
             <button onClick={() => setCurrentView('bounties')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'bounties' ? 'text-[#00FFAB] border-b-2 border-[#00FFAB]' : 'text-[#E5E2E1] hover:text-[#00FFAB]'}`}>Bounties</button>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 relative">
           <div className="hidden sm:flex items-center bg-surface-container-lowest px-3 py-1.5 rounded-lg border-b border-primary-container/30">
             <Search className="w-4 h-4 text-outline mr-2" />
             <input 
@@ -498,6 +696,42 @@ export default function App() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
+          {/* User Search Results Dropdown */}
+          {searchQuery && (
+            <div className="absolute top-full right-0 mt-2 w-64 bg-surface-container-high border border-outline-variant/30 rounded-xl shadow-2xl z-[60] overflow-hidden">
+              <div className="p-2 border-b border-outline-variant/10 bg-surface-container-lowest">
+                <span className="text-[10px] font-bold text-outline uppercase tracking-widest">Users</span>
+              </div>
+              <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                {allUsers
+                  .filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()) && u.id !== user?.id)
+                  .map(u => (
+                    <div 
+                      key={u.id}
+                      onClick={() => {
+                        handleStartDM(u.id);
+                        setSearchQuery('');
+                      }}
+                      className="p-3 hover:bg-primary-container/10 cursor-pointer flex items-center gap-3 transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 group-hover:bg-primary-container/20">
+                        <User className="w-4 h-4 text-outline group-hover:text-primary-container" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-on-surface truncate">{u.username}</p>
+                        <p className="text-[10px] text-outline truncate">{u.professional_bio}</p>
+                      </div>
+                    </div>
+                  ))}
+                {allUsers.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()) && u.id !== user?.id).length === 0 && (
+                  <div className="p-4 text-center text-[10px] text-outline uppercase tracking-widest opacity-50">
+                    No users found
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex gap-3 text-[#E5E2E1]">
             <Search onClick={() => {
               const searchBar = document.querySelector('input[placeholder="Search Terminal..."]') as HTMLInputElement;
@@ -635,6 +869,9 @@ export default function App() {
                     onFollowToggle={handleFollowToggle} 
                     onDelete={handleDeletePost}
                     onStartDM={handleStartDM}
+                    onReVibe={handleReVibePost}
+                    onLike={handleLikePost}
+                    onComment={handleCommentPost}
                   />
                 ))}
                 </AnimatePresence>
@@ -665,6 +902,9 @@ export default function App() {
                     onFollowToggle={handleFollowToggle} 
                     onDelete={handleDeletePost}
                     onStartDM={handleStartDM}
+                    onReVibe={handleReVibePost}
+                    onLike={handleLikePost}
+                    onComment={handleCommentPost}
                   />
                 ))}
                 </AnimatePresence>
@@ -698,6 +938,9 @@ export default function App() {
                     onFollowToggle={handleFollowToggle} 
                     onDelete={handleDeletePost}
                     onStartDM={handleStartDM}
+                    onReVibe={handleReVibePost}
+                    onLike={handleLikePost}
+                    onComment={handleCommentPost}
                   />
                 ))}
                 </AnimatePresence>

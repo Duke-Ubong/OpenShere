@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component<{children: ReactNode}, {hasError: bo
   }
 }
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
   createRoot(document.getElementById('root')!).render(
@@ -49,11 +49,23 @@ if (!PUBLISHABLE_KEY) {
         <p className="text-sm text-gray-400 mb-4">
           To use Clerk authentication, you need to add your Publishable Key to the environment variables.
         </p>
-        <p className="text-sm text-gray-400 mb-4">
-          1. Create a project at <a href="https://clerk.com" className="text-[#00FFAB] underline" target="_blank" rel="noreferrer">clerk.com</a><br/>
-          2. Get your Publishable Key<br/>
-          3. Add it as <code className="bg-black px-1 py-0.5 rounded text-[#00FFAB]">VITE_CLERK_PUBLISHABLE_KEY</code> in the Secrets menu.
-        </p>
+        <div className="text-sm text-gray-400 space-y-4">
+          <div>
+            <p className="font-bold text-white mb-1">If using AI Studio Preview:</p>
+            <p>Add <code className="bg-black px-1 py-0.5 rounded text-[#00FFAB]">VITE_CLERK_PUBLISHABLE_KEY</code> in the <strong>Secrets</strong> menu in the sidebar.</p>
+          </div>
+          <div>
+            <p className="font-bold text-white mb-1">If using Vercel:</p>
+            <p>Add <code className="bg-black px-1 py-0.5 rounded text-[#00FFAB]">VITE_CLERK_PUBLISHABLE_KEY</code> in your project's <strong>Environment Variables</strong> settings.</p>
+          </div>
+          <div>
+            <p className="font-bold text-white mb-1">If using Local Development:</p>
+            <p>Create a <code className="bg-black px-1 py-0.5 rounded text-[#00FFAB]">.env</code> file in the root directory and add the key there.</p>
+          </div>
+          <p className="text-xs italic text-gray-500 mt-4">
+            Note: You can also use <code className="bg-black px-1 py-0.5 rounded text-[#00FFAB]">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> as the variable name.
+          </p>
+        </div>
       </div>
     </div>
   );

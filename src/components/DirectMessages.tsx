@@ -56,13 +56,11 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message)));
-    }, (error) => {
-      console.error("Error fetching messages:", error);
     });
 
     // Fetch other user info
     const conv = conversations.find(c => c.id === activeConversationId);
-    if (conv) {
+    if (conv && currentUser) {
       const otherId = conv.participants.find(p => p !== currentUser.id);
       if (otherId) {
         getDoc(doc(db, 'users', otherId)).then(snap => {
@@ -72,7 +70,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
     }
 
     return () => unsubscribe();
-  }, [activeConversationId, conversations, currentUser.id]);
+  }, [activeConversationId, conversations, currentUser?.id]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -89,7 +87,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
 
     try {
       await addDoc(collection(db, 'conversations', activeConversationId, 'messages'), {
-        senderId: currentUser.id,
+        senderId: currentUser?.id,
         text,
         createdAt: serverTimestamp()
       });
@@ -144,7 +142,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
                   <ConversationItem 
                     key={conv.id} 
                     conv={conv} 
-                    currentUserId={currentUser.id} 
+                    currentUserId={currentUser?.id} 
                     onClick={() => setActiveConversationId(conv.id)} 
                   />
                 ))
@@ -153,9 +151,9 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
           ) : (
             <div ref={scrollRef} className="p-4 space-y-4 h-full overflow-y-auto">
               {messages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                <div key={msg.id} className={`flex ${msg.senderId === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
-                    msg.senderId === currentUser.id 
+                    msg.senderId === currentUser?.id 
                       ? 'bg-primary-container text-on-primary-container rounded-tr-none' 
                       : 'bg-surface-container-highest text-on-surface rounded-tl-none'
                   }`}>

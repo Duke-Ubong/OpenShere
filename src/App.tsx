@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, MessageSquare, RefreshCw, Heart, Monitor, Zap, Lightbulb, User, BarChart2, DollarSign, Settings, HelpCircle, LogOut, Grid, Plus, Menu, X, Shield, ChevronLeft, ChevronRight, Search, Bell, Database, CheckCircle2, Radio, Briefcase, Store, ShieldCheck, Trash2, Send } from 'lucide-react';
+import { Edit2, MessageSquare, RefreshCw, Heart, Monitor, Zap, Lightbulb, User, BarChart2, DollarSign, Settings, HelpCircle, LogOut, Grid, Plus, Menu, X, Shield, ChevronLeft, ChevronRight, Search, Bell, Database, CheckCircle2, Radio, Briefcase, Store, ShieldCheck, Trash2, Send, FileText } from 'lucide-react';
 import GigsRepo from './components/GigsRepo';
 import CreatePostModal from './components/CreatePostModal';
 import LoungeView from './components/LoungeView';
@@ -11,7 +11,7 @@ import { Toaster, toast } from 'sonner';
 
 // Firebase imports
 import { db } from './firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, deleteDoc, where, limit, setDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, deleteDoc, where, limit, setDoc, increment } from 'firebase/firestore';
 
 // Types
 interface UserData {
@@ -24,6 +24,8 @@ interface UserData {
   nodes: number;
   trust_score: number;
   following: string[];
+  followers: string[];
+  profileImage?: string;
   credentials: Array<{ id: string; title: string; issuer: string; date: string }>;
   documents: Array<{ id: string; title: string; category: string; date: string; status: string; tags: string[] }>;
 }
@@ -69,13 +71,14 @@ interface Comment {
 const PostCard: React.FC<{ 
   post: Post, 
   currentUser: UserData | null, 
+  authorProfileImage?: string,
   onFollowToggle: (targetId: string) => void,
   onDelete: (postId: string) => void,
   onStartDM: (userId: string) => void,
   onReVibe: (post: Post) => void,
   onLike: (postId: string, isLiked: boolean) => void,
   onComment: (postId: string, content: string) => void
-}> = ({ post, currentUser, onFollowToggle, onDelete, onStartDM, onReVibe, onLike, onComment }) => {
+}> = ({ post, currentUser, authorProfileImage, onFollowToggle, onDelete, onStartDM, onReVibe, onLike, onComment }) => {
   const isVibe = post.type === 'VIBE' || post.type === 'RE_VIBE';
   const isSystem = post.type === 'SYSTEM';
   
@@ -177,9 +180,13 @@ const PostCard: React.FC<{
         <div className="flex gap-3">
           <div 
             onClick={() => !isMe && post.authorId && onStartDM(post.authorId)}
-            className={`w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0 ${!isMe ? 'cursor-pointer hover:brightness-110 transition-all' : ''}`}
+            className={`w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0 overflow-hidden ${!isMe ? 'cursor-pointer hover:brightness-110 transition-all' : ''}`}
           >
-            {isVibe ? <Zap className="w-5 h-5 text-primary-container" /> : <Lightbulb className="w-5 h-5 text-primary-container" />}
+            {authorProfileImage ? (
+              <img src={authorProfileImage} alt={post.authorName} className="w-full h-full object-cover" />
+            ) : (
+              isVibe ? <Zap className="w-5 h-5 text-primary-container" /> : <Lightbulb className="w-5 h-5 text-primary-container" />
+            )}
           </div>
           <div>
             <div className="font-bold text-on-surface text-sm flex items-center gap-2">
@@ -359,6 +366,7 @@ export default function App() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editIsVerified, setEditIsVerified] = useState(false);
+  const [editProfileImage, setEditProfileImage] = useState('');
 
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs'>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -416,10 +424,15 @@ export default function App() {
         unsubscribeUser();
       }
     };
-  }, []);
+  }, [showWelcome]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setPosts([]);
+      setBounties([]);
+      setAllUsers([]);
+      return;
+    }
 
     const qPosts = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     const unsubscribePosts = onSnapshot(qPosts, (snapshot) => {
@@ -456,6 +469,7 @@ export default function App() {
       setEditUsername(user.username);
       setEditBio(user.professional_bio);
       setEditIsVerified(user.is_verified);
+      setEditProfileImage(user.profileImage || '');
       setIsEditProfileOpen(true);
     }
   };
@@ -468,9 +482,10 @@ export default function App() {
       await updateDoc(userRef, {
         username: editUsername,
         professional_bio: editBio,
-        is_verified: editIsVerified
+        is_verified: editIsVerified,
+        profileImage: editProfileImage
       });
-      setUser({ ...user, username: editUsername, professional_bio: editBio, is_verified: editIsVerified });
+      setUser({ ...user, username: editUsername, professional_bio: editBio, is_verified: editIsVerified, profileImage: editProfileImage });
       setIsEditProfileOpen(false);
       toast.success('Profile updated');
     } catch (error) {
@@ -519,7 +534,10 @@ export default function App() {
   const [conversations, setConversations] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setConversations([]);
+      return;
+    }
     const q = query(
       collection(db, 'conversations'),
       where('participants', 'array-contains', user.id),
@@ -570,6 +588,19 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('test_user_id');
     setUser(null);
+    setPosts([]);
+    setBounties([]);
+    setAllUsers([]);
+    setCurrentView('home');
+    setSearchQuery('');
+    setShowUncensored(false);
+    setIsModalOpen(false);
+    setIsLoungeOpen(false);
+    setIsEditProfileOpen(false);
+    setIsBountyModalOpen(false);
+    setIsDMOpen(false);
+    setActiveConversationId(null);
+    setConversations([]);
     setShowWelcome(true);
   };
 
@@ -577,11 +608,8 @@ export default function App() {
     if (!user) return;
     try {
       const postRef = doc(db, 'posts', postId);
-      const post = posts.find(p => p.id === postId);
-      const currentLikes = post?.stats?.likes || post?.likedBy?.length || 0;
-      
       await updateDoc(postRef, {
-        'stats.likes': isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1),
+        'stats.likes': increment(isLiked ? 1 : -1),
         likedBy: isLiked ? arrayUnion(user.id) : arrayRemove(user.id)
       });
     } catch (error) {
@@ -598,8 +626,8 @@ export default function App() {
         authorName: user.username,
         author: `@${user.username.toLowerCase().replace(/\s+/g, '_')}`,
         content: originalPost.content,
-        originalPostId: originalPost.id,
-        originalAuthorName: originalPost.authorName,
+        originalPostId: originalPost.type === 'RE_VIBE' ? originalPost.originalPostId : originalPost.id,
+        originalAuthorName: originalPost.type === 'RE_VIBE' ? originalPost.originalAuthorName : originalPost.authorName,
         tag: originalPost.tag,
         intensityScore: originalPost.intensityScore,
         stats: { comments: 0, reVibes: 0, likes: 0 },
@@ -610,10 +638,10 @@ export default function App() {
       await addDoc(collection(db, 'posts'), postData);
       
       // Update original post reVibes count
-      const originalRef = doc(db, 'posts', originalPost.id);
-      const currentReVibes = originalPost.stats?.reVibes || originalPost.reVibedBy?.length || 0;
+      const actualOriginalPostId = originalPost.type === 'RE_VIBE' && originalPost.originalPostId ? originalPost.originalPostId : originalPost.id;
+      const originalRef = doc(db, 'posts', actualOriginalPostId);
       await updateDoc(originalRef, {
-        'stats.reVibes': currentReVibes + 1,
+        'stats.reVibes': increment(1),
         reVibedBy: arrayUnion(user.id)
       });
       
@@ -636,9 +664,8 @@ export default function App() {
       
       // Update post comments count
       const postRef = doc(db, 'posts', postId);
-      const post = posts.find(p => p.id === postId);
       await updateDoc(postRef, {
-        'stats.comments': (post?.stats?.comments || 0) + 1
+        'stats.comments': increment(1)
       });
       
       toast.success('Comment added');
@@ -758,7 +785,11 @@ export default function App() {
           <div className="p-6 flex-1 flex flex-col">
             {!isSidebarCollapsed && (
               <div className="flex items-center gap-3 mb-8">
-                <img alt="User Avatar" className="w-10 h-10 rounded-full border border-primary-container/20 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
+                {user?.profileImage ? (
+                  <img alt="User Avatar" className="w-10 h-10 rounded-full border border-primary-container/20 object-cover" src={user.profileImage} />
+                ) : (
+                  <img alt="User Avatar" className="w-10 h-10 rounded-full border border-primary-container/20 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
+                )}
                 <div>
                   <p className="font-label uppercase tracking-widest text-[10px] text-primary-container font-bold">Executive Terminal</p>
                   <p className="font-label text-[10px] text-secondary">Kinetic Status: Active</p>
@@ -767,7 +798,11 @@ export default function App() {
             )}
             {isSidebarCollapsed && (
               <div className="flex justify-center mb-8">
-                <img alt="User Avatar" className="w-10 h-10 rounded-full border border-primary-container/20 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
+                {user?.profileImage ? (
+                  <img alt="User Avatar" className="w-10 h-10 rounded-full border border-primary-container/20 object-cover" src={user.profileImage} />
+                ) : (
+                  <img alt="User Avatar" className="w-10 h-10 rounded-full border border-primary-container/20 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
+                )}
               </div>
             )}
             <nav className="space-y-1">
@@ -870,6 +905,7 @@ export default function App() {
                     key={post.id} 
                     post={post} 
                     currentUser={user} 
+                    authorProfileImage={allUsers.find(u => u.id === post.authorId)?.profileImage}
                     onFollowToggle={handleFollowToggle} 
                     onDelete={handleDeletePost}
                     onStartDM={handleStartDM}
@@ -903,6 +939,7 @@ export default function App() {
                     key={post.id} 
                     post={post} 
                     currentUser={user} 
+                    authorProfileImage={allUsers.find(u => u.id === post.authorId)?.profileImage}
                     onFollowToggle={handleFollowToggle} 
                     onDelete={handleDeletePost}
                     onStartDM={handleStartDM}
@@ -939,6 +976,7 @@ export default function App() {
                     key={post.id} 
                     post={post} 
                     currentUser={user} 
+                    authorProfileImage={allUsers.find(u => u.id === post.authorId)?.profileImage}
                     onFollowToggle={handleFollowToggle} 
                     onDelete={handleDeletePost}
                     onStartDM={handleStartDM}
@@ -963,7 +1001,11 @@ export default function App() {
               <div className="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 lg:p-8 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-6">
                   <div className="relative">
-                    <img alt="User Avatar" className="w-24 h-24 rounded-full border-2 border-primary-container object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
+                    {user?.profileImage ? (
+                      <img alt="User Avatar" className="w-24 h-24 rounded-full border-2 border-primary-container object-cover" src={user.profileImage} />
+                    ) : (
+                      <img alt="User Avatar" className="w-24 h-24 rounded-full border-2 border-primary-container object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
+                    )}
                     <div className="absolute -bottom-2 -right-2 bg-[#00FFAB] text-black text-[8px] font-black px-2 py-1 rounded-full shadow-[0_0_10px_rgba(0,255,171,0.5)]">PRO</div>
                   </div>
                   <div>
@@ -973,7 +1015,7 @@ export default function App() {
                     </h1>
                     <p className="text-secondary font-label tracking-widest uppercase mt-2">{user?.professional_bio}</p>
                     
-                    <div className="flex gap-4 mt-4">
+                    <div className="flex flex-wrap gap-4 mt-4">
                       <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
                         <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Nodes</span>
                         <span className="text-sm font-black text-[#00FFAB]">{user?.nodes?.toLocaleString() || '0'}</span>
@@ -981,6 +1023,18 @@ export default function App() {
                       <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
                         <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Trust</span>
                         <span className="text-sm font-black text-[#00FFAB]">{user?.trust_score || '0'}%</span>
+                      </div>
+                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
+                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Followers</span>
+                        <span className="text-sm font-black text-primary">{user?.followers?.length || '0'}</span>
+                      </div>
+                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
+                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Following</span>
+                        <span className="text-sm font-black text-primary">{user?.following?.length || '0'}</span>
+                      </div>
+                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
+                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Vibes</span>
+                        <span className="text-sm font-black text-primary">{posts.filter(p => p.authorId === user?.id).length}</span>
                       </div>
                     </div>
                   </div>
@@ -1032,33 +1086,59 @@ export default function App() {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="font-headline text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-[#00FFAB]" />
-                    Verified Credentials
-                  </h3>
-                  <div className="space-y-3">
-                    {user?.documents?.map(cred => (
-                      <div key={cred.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-[#00FFAB]/30 transition-all cursor-pointer">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-[8px] font-mono text-outline tracking-widest uppercase">{cred.id}</span>
-                          <CheckCircle2 className="w-3 h-3 text-[#00FFAB]" />
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="font-headline text-xl font-bold text-primary mb-6 flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-[#00FFAB]" />
+                      Credentials
+                    </h3>
+                    <div className="space-y-3">
+                      {user?.credentials?.map(cred => (
+                        <div key={cred.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-[#00FFAB]/30 transition-all cursor-pointer">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-[8px] font-mono text-outline tracking-widest uppercase">{cred.issuer}</span>
+                            <CheckCircle2 className="w-3 h-3 text-[#00FFAB]" />
+                          </div>
+                          <p className="text-xs font-bold text-white mb-1">{cred.title}</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">{cred.date}</p>
                         </div>
-                        <p className="text-xs font-bold text-white mb-1">{cred.title}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">{cred.category}</p>
-                      </div>
-                    ))}
-                    {(!user?.documents || user.documents.length === 0) && (
-                      <div className="text-center p-4 text-outline font-label text-[10px] uppercase tracking-widest border border-dashed border-outline-variant/20 rounded-xl">
-                        No credentials yet
-                      </div>
-                    )}
-                    <button 
-                      onClick={() => setCurrentView('gigs')}
-                      className="w-full py-3 border border-dashed border-outline-variant/30 rounded-xl text-[10px] font-bold text-outline uppercase tracking-widest hover:border-[#00FFAB]/50 hover:text-[#00FFAB] transition-all"
-                    >
-                      View Full Repository
-                    </button>
+                      ))}
+                      {(!user?.credentials || user.credentials.length === 0) && (
+                        <div className="text-center p-4 text-outline font-label text-[10px] uppercase tracking-widest border border-dashed border-outline-variant/20 rounded-xl">
+                          No credentials yet
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-headline text-xl font-bold text-primary mb-6 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary-container" />
+                      Documents
+                    </h3>
+                    <div className="space-y-3">
+                      {user?.documents?.map(doc => (
+                        <div key={doc.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-primary-container/30 transition-all cursor-pointer">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-[8px] font-mono text-outline tracking-widest uppercase">{doc.id}</span>
+                            {doc.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-[#00FFAB]" />}
+                          </div>
+                          <p className="text-xs font-bold text-white mb-1">{doc.title}</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">{doc.category}</p>
+                        </div>
+                      ))}
+                      {(!user?.documents || user.documents.length === 0) && (
+                        <div className="text-center p-4 text-outline font-label text-[10px] uppercase tracking-widest border border-dashed border-outline-variant/20 rounded-xl">
+                          No documents yet
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => setCurrentView('gigs')}
+                        className="w-full py-3 border border-dashed border-outline-variant/30 rounded-xl text-[10px] font-bold text-outline uppercase tracking-widest hover:border-[#00FFAB]/50 hover:text-[#00FFAB] transition-all"
+                      >
+                        View Full Repository
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1236,6 +1316,16 @@ export default function App() {
             </div>
             
             <form onSubmit={handleUpdateProfile} className="p-4 space-y-4">
+              <div>
+                <label className="block font-label text-[10px] text-secondary uppercase tracking-widest mb-2">Profile Image URL</label>
+                <input 
+                  value={editProfileImage}
+                  onChange={(e) => setEditProfileImage(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg"
+                  className="w-full bg-surface-container p-3 rounded border border-outline-variant/20 text-on-surface font-body text-sm focus:outline-none focus:border-primary-container"
+                />
+              </div>
+              
               <div>
                 <label className="block font-label text-[10px] text-secondary uppercase tracking-widest mb-2">Username</label>
                 <input 

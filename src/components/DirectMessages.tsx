@@ -152,17 +152,29 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
             </div>
           ) : (
             <div ref={scrollRef} className="p-4 space-y-4 h-full overflow-y-auto">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.senderId === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
-                    msg.senderId === currentUser?.id 
-                      ? 'bg-primary-container text-on-primary-container rounded-tr-none' 
-                      : 'bg-surface-container-highest text-on-surface rounded-tl-none'
-                  }`}>
-                    {msg.text}
+              {messages.map(msg => {
+                const isMe = msg.senderId === currentUser?.id;
+                return (
+                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                    {!isMe && (
+                      otherUser?.profileImage ? (
+                        <img src={otherUser.profileImage} alt={otherUser.username} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+                          <User className="w-3 h-3 text-outline" />
+                        </div>
+                      )
+                    )}
+                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                      isMe 
+                        ? 'bg-primary-container text-on-primary-container rounded-tr-none' 
+                        : 'bg-surface-container-highest text-on-surface rounded-tl-none'
+                    }`}>
+                      {msg.text}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -211,9 +223,13 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ conv, currentUserId
       className="p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-all border border-transparent hover:border-[#3A4A40]/20 group"
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0 group-hover:bg-primary-container/10 transition-colors">
-          <User className="w-5 h-5 text-outline group-hover:text-primary-container" />
-        </div>
+        {otherUser?.profileImage ? (
+          <img src={otherUser.profileImage} alt={otherUser.username} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+        ) : (
+          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0 group-hover:bg-primary-container/10 transition-colors">
+            <User className="w-5 h-5 text-outline group-hover:text-primary-container" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-0.5">
             <h4 className="font-bold text-on-surface text-sm truncate">{otherUser?.username || 'Loading...'}</h4>

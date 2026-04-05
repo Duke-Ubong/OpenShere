@@ -2,18 +2,28 @@ import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export async function seedDatabase() {
-  const systemDoc = await getDoc(doc(db, 'users', 'system'));
-  
-  if (systemDoc.exists()) {
-    console.log('Database already seeded.');
+  try {
+    const systemDoc = await getDoc(doc(db, 'users', 'system'));
+    
+    if (systemDoc.exists()) {
+      console.log('Database already seeded.');
+      return;
+    }
+  } catch (error: any) {
+    if (error.message?.includes('offline')) {
+      console.warn('Offline: Skipping seed check');
+      return;
+    }
+    console.error('Seed check error:', error);
     return;
   }
 
   console.log('Seeding database...');
 
-  const mockUsers = [
-    {
-      id: 'system',
+  try {
+    const mockUsers = [
+      {
+        id: 'system',
       username: 'System Log',
       email: 'system@opensphere.io',
       professional_bio: 'Automated System Logs',
@@ -238,4 +248,11 @@ export async function seedDatabase() {
   }
 
   console.log('Database seeded successfully.');
+  } catch (error: any) {
+    if (error.message?.includes('offline')) {
+      console.warn('Offline: Seeding postponed');
+      return;
+    }
+    console.error('Seeding error:', error);
+  }
 }

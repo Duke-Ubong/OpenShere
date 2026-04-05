@@ -25,7 +25,23 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitialize }) => {
       const userId = 'test-user-' + username.trim().toLowerCase().replace(/\s+/g, '-');
       
       // Check if user exists in Firestore
-      const userDoc = await getDoc(doc(db, 'users', userId));
+      let userDoc;
+      try {
+        userDoc = await getDoc(doc(db, 'users', userId));
+      } catch (err: any) {
+        if (err.message?.includes('offline')) {
+          // If offline, check if we have a local user ID that matches
+          const localUserId = localStorage.getItem('test_user_id');
+          if (localUserId === userId) {
+            toast.info('Offline mode: Using cached profile');
+            onInitialize();
+            return;
+          }
+          throw new Error('You are offline and this profile is not cached. Please connect to the internet to log in.');
+        }
+        throw err;
+      }
+
       if (!userDoc.exists()) {
         // Create new user profile
         await setDoc(doc(db, 'users', userId), {

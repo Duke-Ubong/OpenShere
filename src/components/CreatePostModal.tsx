@@ -14,7 +14,6 @@ interface CreatePostModalProps {
 export default function CreatePostModal({ isOpen, onClose, onPostCreated, user }: CreatePostModalProps) {
   const [postType, setPostType] = useState<'VIBE' | 'GIG'>('VIBE');
   const [content, setContent] = useState('');
-  const [isUncensored, setIsUncensored] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [tag, setTag] = useState('');
   
@@ -80,8 +79,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, user }
     
     if (postType === 'VIBE') {
       postData.content = content;
-      postData.isUncensored = isUncensored;
-      postData.intensityScore = isUncensored ? Math.floor(Math.random() * 20) + 80 : Math.floor(Math.random() * 50) + 10;
       
       let generatedTag = tag.trim();
       if (!generatedTag) {
@@ -120,7 +117,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, user }
   const handleClose = () => {
     setPostType('VIBE');
     setContent('');
-    setIsUncensored(false);
     setImagePreview(null);
     setTag('');
     setTitle('');
@@ -307,20 +303,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, user }
                 <button className="p-2 text-primary-container hover:bg-primary-container/10 rounded-full transition-colors hidden sm:block" title="Add Location">
                   <MapPin className="w-5 h-5" />
                 </button>
-                
-                {postType === 'VIBE' && (
-                  <div className="ml-2 flex items-center">
-                    <button 
-                      onClick={() => setIsUncensored(!isUncensored)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                        isUncensored ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
-                      }`}
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                      {isUncensored ? 'UNCENSORED' : 'FILTERED'}
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div className="flex items-center gap-3">

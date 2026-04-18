@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, MessageSquare, RefreshCw, Heart, Monitor, Zap, Lightbulb, User, BarChart2, DollarSign, Settings, HelpCircle, LogOut, Grid, Plus, Menu, X, Shield, ChevronLeft, ChevronRight, Search, Bell, Database, CheckCircle2, Radio, Briefcase, Store, ShieldCheck, Trash2, Send, FileText } from 'lucide-react';
+import { Edit2, MessageSquare, RefreshCw, Heart, Monitor, Zap, Lightbulb, User, BarChart2, DollarSign, Settings, HelpCircle, LogOut, Grid, Plus, Menu, X, Shield, ChevronLeft, ChevronRight, Search, Bell, Database, CheckCircle2, Radio, Briefcase, Store, ShieldCheck, Trash2, Send, FileText, Sun, Moon, Home, Users, Mail } from 'lucide-react';
 import GigsRepo from './components/GigsRepo';
 import CreatePostModal from './components/CreatePostModal';
 import LoungeView from './components/LoungeView';
 import CreateBountyModal from './components/CreateBountyModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import DirectMessages from './components/DirectMessages';
+import SearchView from './components/SearchView';
+import NetworkView from './components/NetworkView';
+import ActivityView from './components/ActivityView';
 import { AnimatePresence, motion } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 
@@ -20,7 +23,6 @@ interface UserData {
   email: string;
   professional_bio: string;
   is_verified: boolean;
-  exposure_dial: number;
   nodes: number;
   trust_score: number;
   following: string[];
@@ -36,14 +38,12 @@ interface Post {
   id: string;
   authorId?: string;
   type: 'VIBE' | 'GIG' | 'SYSTEM' | 'RE_VIBE';
-  isUncensored?: boolean;
   // VIBE fields
   authorName?: string;
   author?: string;
   time?: string;
   content?: string;
   tag?: string;
-  intensityScore?: number;
   stats?: { comments?: number; reVibes?: number; likes?: number; nodes?: number };
   likedBy?: string[];
   reVibedBy?: string[];
@@ -154,7 +154,7 @@ const PostCard: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="bg-surface-container-lowest p-4 rounded-xl mb-4 border-l-4 border-primary-container"
+        className="bg-surface-container p-4 rounded-xl mb-4 border-l-4 border-primary-container shadow-sm"
       >
         <div className="flex items-center gap-2 text-primary-container text-xs font-bold mb-3 tracking-widest uppercase">
           <Monitor className="w-4 h-4" /> SYSTEM BROADCAST
@@ -174,7 +174,7 @@ const PostCard: React.FC<{
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="bg-surface-container-lowest p-4 rounded-xl mb-4 border border-outline-variant/20 transition-all hover:border-outline-variant/40"
+      className="bg-surface-container p-4 rounded-xl mb-4 border border-outline-variant/20 transition-all hover:border-outline-variant/40 shadow-sm"
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-3">
@@ -244,12 +244,6 @@ const PostCard: React.FC<{
           <div className="inline-block px-2 py-0.5 bg-primary-container/10 text-primary-container text-xs font-mono rounded">
             {post.tag}
           </div>
-          {post.intensityScore !== undefined && (
-            <div className="flex items-center gap-1 text-[10px] font-mono text-outline" title="Exposure Dial Intensity">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: post.intensityScore > 75 ? '#FF3B30' : post.intensityScore > 40 ? '#FF9500' : '#00FFAB' }}></span>
-              INTENSITY: {post.intensityScore}/100
-            </div>
-          )}
         </div>
       )}
       
@@ -267,18 +261,18 @@ const PostCard: React.FC<{
             </span>
             <span 
               onClick={handleReVibe} 
-              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isReVibed ? 'text-[#00FFAB] drop-shadow-[0_0_8px_rgba(0,255,171,0.5)]' : 'hover:text-[#00FFAB]'}`}
+              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isReVibed ? 'text-primary-container drop-shadow-[0_0_8px_rgba(var(--primary-container-rgb),0.5)]' : 'hover:text-primary-container'}`}
             >
-              <div className={`p-1.5 rounded-full group-hover:bg-[#00FFAB]/10 transition-colors ${isReVibed ? 'bg-[#00FFAB]/10' : ''}`}>
+              <div className={`p-1.5 rounded-full group-hover:bg-primary-container/10 transition-colors ${isReVibed ? 'bg-primary-container/10' : ''}`}>
                 <RefreshCw className={`w-4 h-4 ${isReVibed ? 'animate-spin-slow' : ''}`}/>
               </div>
               {reVibesCount}
             </span>
             <span 
               onClick={handleLike} 
-              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isLiked ? 'text-[#FF3B30] drop-shadow-[0_0_12px_rgba(255,59,48,0.8)]' : 'hover:text-[#FF3B30]'}`}
+              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${isLiked ? 'text-error drop-shadow-[0_0_12px_rgba(var(--error-rgb),0.8)]' : 'hover:text-error'}`}
             >
-              <div className={`p-1.5 rounded-full group-hover:bg-[#FF3B30]/10 transition-colors ${isLiked ? 'bg-[#FF3B30]/10' : ''}`}>
+              <div className={`p-1.5 rounded-full group-hover:bg-error/10 transition-colors ${isLiked ? 'bg-error/10' : ''}`}>
                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`}/>
               </div>
               {likesCount}
@@ -356,7 +350,22 @@ export default function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [showUncensored, setShowUncensored] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoungeOpen, setIsLoungeOpen] = useState(false);
   const [feedType, setFeedType] = useState<'all' | 'following'>('all');
@@ -368,7 +377,7 @@ export default function App() {
   const [editIsVerified, setEditIsVerified] = useState(false);
   const [editProfileImage, setEditProfileImage] = useState('');
 
-  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs' | 'search' | 'network' | 'activity'>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -593,7 +602,6 @@ export default function App() {
     setAllUsers([]);
     setCurrentView('home');
     setSearchQuery('');
-    setShowUncensored(false);
     setIsModalOpen(false);
     setIsLoungeOpen(false);
     setIsEditProfileOpen(false);
@@ -602,6 +610,8 @@ export default function App() {
     setActiveConversationId(null);
     setConversations([]);
     setShowWelcome(true);
+    // Force reload to clear any stale state
+    window.location.reload();
   };
 
   const handleLikePost = async (postId: string, isLiked: boolean) => {
@@ -629,7 +639,6 @@ export default function App() {
         originalPostId: originalPost.type === 'RE_VIBE' ? originalPost.originalPostId : originalPost.id,
         originalAuthorName: originalPost.type === 'RE_VIBE' ? originalPost.originalAuthorName : originalPost.authorName,
         tag: originalPost.tag,
-        intensityScore: originalPost.intensityScore,
         stats: { comments: 0, reVibes: 0, likes: 0 },
         likedBy: [],
         reVibedBy: [],
@@ -689,7 +698,6 @@ export default function App() {
     }
     
     if (post.type === 'GIG') return true;
-    if (post.isUncensored && !showUncensored) return false;
     if (feedType === 'following' && post.authorId !== 'system' && post.authorId !== user?.id && !user?.following?.includes(post.authorId || '')) return false;
     return true;
   });
@@ -699,89 +707,75 @@ export default function App() {
 
   return (
     <AnimatePresence mode="wait">
-      <Toaster theme="dark" position="top-right" />
+      <Toaster theme={theme === 'dark' ? 'dark' : 'light'} position="top-right" />
       {showWelcome ? (
         <motion.div key="welcome" exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }} transition={{ duration: 0.8, ease: "easeInOut" }}>
           <WelcomeScreen onInitialize={() => setShowWelcome(false)} />
         </motion.div>
       ) : (
-        <motion.div key="app" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.2 }} className="min-h-screen bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed flex flex-col">
+        <motion.div key="app" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.2 }} className="min-h-screen max-w-[100vw] overflow-x-hidden bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed flex flex-col">
           {/* TopNavBar */}
-      <nav className="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-[#131313]">
+      <nav className="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-surface border-b border-outline-variant/10">
         <div className="flex items-center gap-8">
-          <span className="text-xl font-black text-[#F6FFF6] tracking-tighter font-headline">OpenSphere</span>
+          <span className="text-xl font-black text-on-surface tracking-tighter font-headline">OpenSphere</span>
           <div className="hidden md:flex gap-6 items-center">
-            <button onClick={() => setCurrentView('home')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'home' ? 'text-[#00FFAB] border-b-2 border-[#00FFAB]' : 'text-[#E5E2E1] hover:text-[#00FFAB]'}`}>Vibe</button>
-            <button onClick={() => setCurrentView('gigs')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'gigs' ? 'text-[#00FFAB] border-b-2 border-[#00FFAB]' : 'text-[#E5E2E1] hover:text-[#00FFAB]'}`}>Gigs</button>
-            <button onClick={() => setCurrentView('bounties')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'bounties' ? 'text-[#00FFAB] border-b-2 border-[#00FFAB]' : 'text-[#E5E2E1] hover:text-[#00FFAB]'}`}>Bounties</button>
+            <button onClick={() => setCurrentView('home')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'home' ? 'text-primary-container border-b-2 border-primary-container' : 'text-on-surface hover:text-primary-container'}`}>Vibe</button>
+            <button onClick={() => setCurrentView('gigs')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'gigs' ? 'text-primary-container border-b-2 border-primary-container' : 'text-on-surface hover:text-primary-container'}`}>Gigs</button>
+            <button onClick={() => setCurrentView('bounties')} className={`font-headline font-bold tracking-tight py-1 transition-all active:scale-95 duration-100 ${currentView === 'bounties' ? 'text-primary-container border-b-2 border-primary-container' : 'text-on-surface hover:text-primary-container'}`}>Bounties</button>
           </div>
         </div>
         <div className="flex items-center gap-4 relative">
-          <div className="hidden sm:flex items-center bg-surface-container-lowest px-3 py-1.5 rounded-lg border-b border-primary-container/30">
-            <Search className="w-4 h-4 text-outline mr-2" />
-            <input 
-              className="bg-transparent border-none focus:outline-none text-sm font-label uppercase tracking-widest text-on-surface-variant placeholder:text-outline/50 w-48" 
-              placeholder="Search Terminal..." 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* User Search Results Dropdown */}
-          {searchQuery && (
-            <div className="absolute top-full right-0 mt-2 w-64 bg-surface-container-high border border-outline-variant/30 rounded-xl shadow-2xl z-[60] overflow-hidden">
-              <div className="p-2 border-b border-outline-variant/10 bg-surface-container-lowest">
-                <span className="text-[10px] font-bold text-outline uppercase tracking-widest">Users</span>
-              </div>
-              <div className="max-h-64 overflow-y-auto custom-scrollbar">
-                {allUsers
-                  .filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()) && u.id !== user?.id)
-                  .map(u => (
-                    <div 
-                      key={u.id}
-                      onClick={() => {
-                        handleStartDM(u.id);
-                        setSearchQuery('');
-                      }}
-                      className="p-3 hover:bg-primary-container/10 cursor-pointer flex items-center gap-3 transition-colors group"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 group-hover:bg-primary-container/20">
-                        <User className="w-4 h-4 text-outline group-hover:text-primary-container" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-on-surface truncate">{u.username}</p>
-                        <p className="text-[10px] text-outline truncate">{u.professional_bio}</p>
-                      </div>
-                    </div>
-                  ))}
-                {allUsers.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()) && u.id !== user?.id).length === 0 && (
-                  <div className="p-4 text-center text-[10px] text-outline uppercase tracking-widest opacity-50">
-                    No users found
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          <div className="flex gap-3 text-[#E5E2E1]">
-            <Search onClick={() => {
-              const searchBar = document.querySelector('input[placeholder="Search Terminal..."]') as HTMLInputElement;
-              if (searchBar) {
-                searchBar.parentElement?.classList.toggle('hidden');
-                searchBar.focus();
-              }
-            }} className="w-5 h-5 sm:hidden hover:text-[#00FFAB] cursor-pointer transition-colors" />
-            <Bell onClick={() => toast('No new notifications')} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
-            <MessageSquare onClick={() => setIsDMOpen(true)} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
-            <User onClick={() => setCurrentView('profile')} className="w-5 h-5 hover:text-[#00FFAB] cursor-pointer transition-colors" />
+          <div className="flex items-center gap-4 text-on-surface">
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-1 hover:text-primary-container transition-colors rounded-full hover:bg-surface-container-high focus:outline-none">
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <User onClick={() => setCurrentView('profile')} className="w-5 h-5 hover:text-primary-container cursor-pointer transition-colors" />
           </div>
         </div>
       </nav>
 
-      <div className="flex flex-1">
+      {/* Bottom Navigation Bar (Mobile) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant/10 z-[60] px-8 py-3 flex justify-between items-center h-[72px] pb-[max(12px,env(safe-area-inset-bottom))]">
+        <button onClick={() => setCurrentView('home')} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${currentView === 'home' ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
+          <div className="relative flex flex-col items-center">
+            <Home className="w-6 h-6" fill={currentView === 'home' ? 'currentColor' : 'none'} strokeWidth={currentView === 'home' ? 2 : 2} />
+            {currentView === 'home' && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
+          </div>
+        </button>
+        
+        <button onClick={() => setCurrentView('search')} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${currentView === 'search' ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
+          <div className="relative flex flex-col items-center">
+            <Search className="w-6 h-6" fill={currentView === 'search' ? 'currentColor' : 'none'} />
+            {currentView === 'search' && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
+          </div>
+        </button>
+
+        <button onClick={() => setCurrentView('network')} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${currentView === 'network' ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
+          <div className="relative flex flex-col items-center">
+            <Users className="w-6 h-6" fill={currentView === 'network' ? 'currentColor' : 'none'} />
+            {currentView === 'network' && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
+          </div>
+        </button>
+        
+        <button onClick={() => setCurrentView('activity')} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${currentView === 'activity' ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
+          <div className="relative flex flex-col items-center">
+            <Bell className="w-6 h-6" fill={currentView === 'activity' ? 'currentColor' : 'none'} />
+            {currentView === 'activity' && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
+          </div>
+        </button>
+        
+        <button onClick={() => setIsDMOpen(true)} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${isDMOpen ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
+          <div className="relative flex flex-col items-center">
+            <Mail className="w-6 h-6" fill={isDMOpen ? 'currentColor' : 'none'} />
+            {isDMOpen && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
+          </div>
+        </button>
+      </div>
+
+      {/* Floating Theme Toggle (Removed per user request) */}
         {/* SideNavBar */}
         {currentView !== 'gigs' && (
-        <aside className={`hidden lg:flex flex-col h-[calc(100vh-60px)] fixed left-0 top-[60px] pt-8 bg-[#1C1B1B] border-r border-[#3A4A40]/15 z-40 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <aside className={`hidden lg:flex flex-col h-[calc(100vh-60px)] fixed left-0 top-[60px] pt-8 bg-surface-container-low border-r border-outline-variant/15 z-40 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <div className="p-6 flex-1 flex flex-col">
             {!isSidebarCollapsed && (
               <div className="flex items-center gap-3 mb-8">
@@ -806,29 +800,41 @@ export default function App() {
               </div>
             )}
             <nav className="space-y-1">
-              <button onClick={() => setCurrentView('home')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'home' ? 'bg-[#2A2A2A] text-[#00FFAB] shadow-[0_0_15px_rgba(0,255,171,0.2)]' : 'text-[#B5C8DF] hover:bg-[#201F1F] hover:text-[#00FFAB]'}`}>
+              <button onClick={() => setCurrentView('home')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'home' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
                 <Grid className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Home</span>}
               </button>
-              <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'profile' ? 'bg-[#2A2A2A] text-[#00FFAB] shadow-[0_0_15px_rgba(0,255,171,0.2)]' : 'text-[#B5C8DF] hover:bg-[#201F1F] hover:text-[#00FFAB]'}`}>
+              <button onClick={() => setCurrentView('search')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'search' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
+                <Search className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Discover</span>}
+              </button>
+              <button onClick={() => setCurrentView('network')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'network' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
+                <Users className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Network</span>}
+              </button>
+              <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'profile' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
                 <User className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Profile</span>}
               </button>
-              <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'dashboard' ? 'bg-[#2A2A2A] text-[#00FFAB] shadow-[0_0_15px_rgba(0,255,171,0.2)]' : 'text-[#B5C8DF] hover:bg-[#201F1F] hover:text-[#00FFAB]'}`}>
+              <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'dashboard' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
                 <BarChart2 className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Dashboard</span>}
               </button>
-              <button onClick={() => setCurrentView('bounties')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'bounties' ? 'bg-[#2A2A2A] text-[#00FFAB] shadow-[0_0_15px_rgba(0,255,171,0.2)]' : 'text-[#B5C8DF] hover:bg-[#201F1F] hover:text-[#00FFAB]'}`}>
+              <button onClick={() => setCurrentView('bounties')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'bounties' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
                 <DollarSign className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Bounty Board</span>}
               </button>
-              <button onClick={() => setIsLoungeOpen(true)} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-[#D4AF37] hover:bg-[#D4AF37]/10 border border-transparent hover:border-[#D4AF37]/30`}>
+              <button onClick={() => setIsLoungeOpen(true)} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-lounge-gold hover:bg-lounge-gold/10 border border-transparent hover:border-lounge-gold/30`}>
                 <Shield className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">The Lounge</span>}
               </button>
-              <button onClick={() => setIsDMOpen(true)} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-[#00FFAB] hover:bg-[#00FFAB]/10 border border-transparent hover:border-[#00FFAB]/30`}>
+              <button onClick={() => setIsDMOpen(true)} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-primary-container hover:bg-primary-container/10 border border-transparent hover:border-primary-container/30`}>
                 <MessageSquare className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Direct Messages</span>}
+              </button>
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-secondary hover:bg-surface-container-high border border-transparent`}>
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
               </button>
             </nav>
             <button 
@@ -839,21 +845,21 @@ export default function App() {
             </button>
           </div>
           <div className="mt-auto p-6 space-y-1">
-            <button onClick={() => toast('Settings panel coming soon')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-[#B5C8DF] hover:text-[#00FFAB] transition-all`}>
+            <button onClick={() => toast('Settings panel coming soon')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-secondary hover:text-primary-container transition-all`}>
               <Settings className="w-4 h-4" />
               {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Settings</span>}
             </button>
-            <button onClick={() => toast('Support center coming soon')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-[#B5C8DF] hover:text-[#00FFAB] transition-all`}>
+            <button onClick={() => toast('Support center coming soon')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-secondary hover:text-primary-container transition-all`}>
               <HelpCircle className="w-4 h-4" />
               {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Support</span>}
             </button>
-            <button onClick={handleLogout} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-[#FF3B30] hover:text-[#FF3B30]/80 transition-all`}>
+            <button onClick={handleLogout} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 text-error hover:opacity-80 transition-all`}>
               <LogOut className="w-4 h-4" />
               {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Log Out</span>}
             </button>
             <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 mt-4 text-[#B5C8DF] hover:text-[#00FFAB] transition-all border-t border-[#3A4A40]/15 pt-4`}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-2 mt-4 text-secondary hover:text-primary-container transition-all border-t border-outline-variant/10 pt-4`}
             >
               {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Collapse</span>}
@@ -876,26 +882,17 @@ export default function App() {
                   <div className="flex gap-4 mt-1">
                     <button 
                       onClick={() => setFeedType('all')}
-                      className={`font-label text-[10px] uppercase tracking-widest transition-colors ${feedType === 'all' ? 'text-[#00FFAB]' : 'text-primary-container hover:text-[#00FFAB]'}`}
+                      className={`font-label text-[10px] uppercase tracking-widest transition-colors ${feedType === 'all' ? 'text-primary-container' : 'text-secondary hover:text-primary-container'}`}
                     >
                       All
                     </button>
                     <button 
                       onClick={() => setFeedType('following')}
-                      className={`font-label text-[10px] uppercase tracking-widest transition-colors ${feedType === 'following' ? 'text-[#00FFAB]' : 'text-primary-container hover:text-[#00FFAB]'}`}
+                      className={`font-label text-[10px] uppercase tracking-widest transition-colors ${feedType === 'following' ? 'text-primary-container' : 'text-secondary hover:text-primary-container'}`}
                     >
                       Following
                     </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-label text-[10px] uppercase tracking-widest text-secondary">Uncensored</span>
-                  <button 
-                    onClick={() => setShowUncensored(!showUncensored)}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${showUncensored ? 'bg-primary-container' : 'bg-surface-container-highest'}`}
-                  >
-                    <div className={`w-3 h-3 rounded-full bg-surface absolute top-1 transition-transform ${showUncensored ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
                 </div>
               </header>
               <div className="space-y-4">
@@ -958,15 +955,6 @@ export default function App() {
                 <div>
                   <h2 className="font-headline text-2xl font-black text-primary tracking-tighter">FEED</h2>
                   <p className="font-label text-xs text-primary-container tracking-widest uppercase">Unified Stream</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-label text-[10px] uppercase tracking-widest text-secondary">Uncensored</span>
-                  <button 
-                    onClick={() => setShowUncensored(!showUncensored)}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${showUncensored ? 'bg-primary-container' : 'bg-surface-container-highest'}`}
-                  >
-                    <div className={`w-3 h-3 rounded-full bg-surface absolute top-1 transition-transform ${showUncensored ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
                 </div>
               </header>
               <div className="space-y-4">
@@ -1145,6 +1133,36 @@ export default function App() {
             </motion.div>
           )}
 
+          {currentView === 'search' && (
+            <motion.div key="search" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+              <SearchView 
+                currentUser={user} 
+                onFollowUser={handleFollowToggle} 
+                onNavigateToProfile={() => setCurrentView('profile')}
+              />
+            </motion.div>
+          )}
+
+          {currentView === 'network' && (
+            <motion.div key="network" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+              <NetworkView 
+                currentUser={user} 
+                onNavigateToProfile={() => setCurrentView('profile')}
+              />
+            </motion.div>
+          )}
+
+          {currentView === 'activity' && (
+            <motion.div key="activity" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+              <ActivityView 
+                onBack={() => setCurrentView('home')}
+                onNavigateToProfile={() => setCurrentView('profile')}
+                onNavigateToPost={(id) => { toast('Navigating to post ' + id); setCurrentView('home'); }}
+                onNavigateToDMs={() => setIsDMOpen(true)}
+              />
+            </motion.div>
+          )}
+
           {currentView === 'dashboard' && (() => {
             const userPosts = posts.filter(p => p.author === user?.username || (p.type === 'GIG' && user?.username === '0x_founder'));
             const totalTransmissions = userPosts.length;
@@ -1278,32 +1296,7 @@ export default function App() {
           )}
           </AnimatePresence>
         </main>
-      </div>
-
-      {/* BottomNavBar (Mobile Only) */}
-      <div className="fixed bottom-0 left-0 w-full flex justify-around items-center px-2 pb-6 pt-2 lg:hidden bg-[#131313]/90 backdrop-blur-xl border-t border-[#3A4A40]/15 z-50" style={{ height: '72px' }}>
-        <button onClick={() => setCurrentView('home')} className={`flex flex-col items-center justify-center rounded-md py-2 px-2 active:scale-90 duration-150 ${currentView === 'home' ? 'text-[#00FFAB]' : 'text-[#B5C8DF] hover:text-[#00FFAB]'}`}>
-          <Radio className="w-5 h-5" />
-          <span className="font-label text-[10px] font-medium mt-1 tracking-widest uppercase">Vibe</span>
-        </button>
-        <button onClick={() => setCurrentView('gigs')} className={`flex flex-col items-center justify-center rounded-md py-2 px-2 active:scale-90 duration-150 ${currentView === 'gigs' ? 'text-[#00FFAB]' : 'text-[#B5C8DF] hover:text-[#00FFAB]'}`}>
-          <Briefcase className="w-5 h-5" />
-          <span className="font-label text-[10px] font-medium mt-1 tracking-widest uppercase">Gigs</span>
-        </button>
-        <button onClick={() => setCurrentView('bounties')} className={`flex flex-col items-center justify-center rounded-md py-2 px-2 active:scale-90 duration-150 ${currentView === 'bounties' ? 'text-[#00FFAB]' : 'text-[#B5C8DF] hover:text-[#00FFAB]'}`}>
-          <Store className="w-5 h-5" />
-          <span className="font-label text-[10px] font-medium mt-1 tracking-widest uppercase">Market</span>
-        </button>
-        <button onClick={() => setIsLoungeOpen(true)} className={`flex flex-col items-center justify-center rounded-md py-2 px-2 active:scale-90 duration-150 text-[#D4AF37] hover:text-[#D4AF37]/80`}>
-          <Shield className="w-5 h-5" />
-          <span className="font-label text-[10px] font-medium mt-1 tracking-widest uppercase">Lounge</span>
-        </button>
-        <button onClick={() => setCurrentView('profile')} className={`flex flex-col items-center justify-center rounded-md py-2 px-2 active:scale-90 duration-150 ${currentView === 'profile' ? 'text-[#00FFAB]' : 'text-[#B5C8DF] hover:text-[#00FFAB]'}`}>
-          <User className="w-5 h-5" />
-          <span className="font-label text-[10px] font-medium mt-1 tracking-widest uppercase">Profile</span>
-        </button>
-      </div>
-
+      
       {/* Edit Profile Modal */}
       {isEditProfileOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1414,7 +1407,7 @@ export default function App() {
           conversations={conversations}
         />
 
-        <Toaster position="bottom-right" theme="dark" />
+        <Toaster position="bottom-right" theme={theme === 'dark' ? 'dark' : 'light'} />
         </motion.div>
       )}
     </AnimatePresence>

@@ -74,14 +74,14 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
           initial={{ opacity: 0, y: "100%" }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: "100%" }}
-          className="relative w-full max-w-lg bg-[#111111] border border-[#D4AF37]/30 rounded-t-2xl sm:rounded-2xl shadow-[0_0_40px_rgba(212,175,55,0.1)] overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-lg bg-surface-container border border-lounge-gold/30 rounded-t-2xl sm:rounded-2xl shadow-[0_0_40px_rgba(212,175,55,0.1)] overflow-hidden flex flex-col max-h-[90vh]"
         >
-          <div className="flex justify-between items-center p-6 border-b border-[#D4AF37]/20 bg-[#111111]">
+          <div className="flex justify-between items-center p-6 border-b border-lounge-gold/20 bg-surface-container">
             <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-[#D4AF37]" />
-              <h2 className="text-xl font-bold text-white tracking-wider">Initialize Lounge</h2>
+              <Shield className="w-6 h-6 text-lounge-gold" />
+              <h2 className="text-xl font-bold text-on-surface tracking-wider">Initialize Lounge</h2>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="text-outline hover:text-on-surface transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -89,20 +89,20 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
           <div className="p-6 overflow-y-auto flex-1">
             <form id="create-lounge-form" onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Lounge Designation</label>
+                <label className="block text-[10px] font-bold text-lounge-gold uppercase tracking-widest mb-2">Lounge Designation</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Core Architecture Sync"
-                  className="w-full bg-[#0A0A0A] border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
+                  className="w-full bg-surface border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:border-lounge-gold/50 transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Skill-Gate Thresholds</label>
-                <p className="text-xs text-gray-500 mb-4">Define the expertise required to enter this environment.</p>
+                <label className="block text-[10px] font-bold text-lounge-gold uppercase tracking-widest mb-2">Skill-Gate Thresholds</label>
+                <p className="text-xs text-outline mb-4">Define the expertise required to enter this environment.</p>
                 
                 <div className="space-y-3">
                   {skills.map((skill, index) => (
@@ -112,18 +112,18 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
                         value={skill.name}
                         onChange={(e) => handleUpdateSkill(index, 'name', e.target.value)}
                         placeholder="Skill (e.g., System Design)"
-                        className="flex-1 bg-[#0A0A0A] border border-gray-800 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
+                        className="flex-1 bg-surface border border-outline-variant rounded-lg p-3 text-on-surface text-sm focus:outline-none focus:border-lounge-gold/50 transition-colors"
                         required
                       />
-                      <div className="flex items-center gap-2 bg-[#0A0A0A] border border-gray-800 rounded-lg p-3 w-32">
-                        <span className="text-xs text-gray-500">Lv.</span>
+                      <div className="flex items-center gap-2 bg-surface border border-outline-variant rounded-lg p-3 w-32">
+                        <span className="text-xs text-outline">Lv.</span>
                         <input
                           type="number"
                           min="0"
                           max="100"
                           value={skill.threshold}
                           onChange={(e) => handleUpdateSkill(index, 'threshold', parseInt(e.target.value) || 0)}
-                          className="w-full bg-transparent text-white text-sm focus:outline-none text-right"
+                          className="w-full bg-transparent text-on-surface text-sm focus:outline-none text-right"
                           required
                         />
                       </div>
@@ -131,7 +131,7 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
                         type="button"
                         onClick={() => handleRemoveSkill(index)}
                         disabled={skills.length === 1}
-                        className="p-3 text-gray-600 hover:text-red-500 disabled:opacity-50 transition-colors"
+                        className="p-3 text-outline hover:text-error disabled:opacity-50 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -142,13 +142,13 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
                 <button
                   type="button"
                   onClick={handleAddSkill}
-                  className="mt-3 flex items-center gap-2 text-xs font-bold text-[#D4AF37] uppercase tracking-widest hover:text-[#F3E5AB] transition-colors"
+                  className="mt-3 flex items-center gap-2 text-xs font-bold text-lounge-gold uppercase tracking-widest hover:text-lounge-gold/80 transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Add Skill Requirement
                 </button>
               </div>
 
-              <div className="pt-4 border-t border-gray-800">
+              <div className="pt-4 border-t border-outline-variant">
                 <label className="flex items-start gap-4 cursor-pointer group">
                   <div className="relative flex items-center justify-center mt-1">
                     <input
@@ -157,23 +157,23 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
                       onChange={(e) => setIsTemporary(e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full transition-colors ${isTemporary ? 'bg-red-500/20 border border-red-500/50' : 'bg-gray-800 border border-gray-700'}`}></div>
-                    <div className={`absolute left-1 w-4 h-4 rounded-full transition-transform ${isTemporary ? 'bg-red-500 translate-x-4' : 'bg-gray-500'}`}></div>
+                    <div className={`w-10 h-6 rounded-full transition-colors ${isTemporary ? 'bg-error/20 border border-error/50' : 'bg-surface-container-high border border-outline-variant'}`}></div>
+                    <div className={`absolute left-1 w-4 h-4 rounded-full transition-transform ${isTemporary ? 'bg-error translate-x-4' : 'bg-outline'}`}></div>
                   </div>
                   <div>
-                    <p className={`text-sm font-bold uppercase tracking-widest ${isTemporary ? 'text-red-500' : 'text-gray-300'}`}>Off-The-Record (OTR) Session</p>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">If enabled, this lounge operates as a "burn-on-close" room. All messages and metadata will be permanently purged upon session termination.</p>
+                    <p className={`text-sm font-bold uppercase tracking-widest ${isTemporary ? 'text-error' : 'text-on-surface-variant'}`}>Off-The-Record (OTR) Session</p>
+                    <p className="text-xs text-outline mt-1 leading-relaxed">If enabled, this lounge operates as a "burn-on-close" room. All messages and metadata will be permanently purged upon session termination.</p>
                   </div>
                 </label>
               </div>
             </form>
           </div>
 
-          <div className="p-6 border-t border-[#D4AF37]/20 bg-[#111111] flex justify-end gap-3">
+          <div className="p-6 border-t border-lounge-gold/20 bg-surface-container flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs text-gray-400 hover:text-white transition-colors"
+              className="px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs text-outline hover:text-on-surface transition-colors"
             >
               Cancel
             </button>
@@ -181,7 +181,7 @@ const CreateLoungeModal: React.FC<CreateLoungeModalProps> = ({ isOpen, onClose, 
               type="submit"
               form="create-lounge-form"
               disabled={isSubmitting || !name.trim() || skills.some(s => !s.name.trim())}
-              className="px-6 py-3 bg-[#D4AF37] text-black rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-[#F3E5AB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+              className="px-6 py-3 bg-lounge-gold text-on-primary-fixed rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-lounge-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_rgba(212,175,55,0.2)]"
             >
               {isSubmitting ? 'Initializing...' : 'Establish Lounge'}
             </button>

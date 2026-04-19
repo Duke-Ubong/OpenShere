@@ -9,6 +9,8 @@ import DirectMessages from './components/DirectMessages';
 import SearchView from './components/SearchView';
 import NetworkView from './components/NetworkView';
 import ActivityView from './components/ActivityView';
+import MessagingView from './components/MessagingView';
+import ProfileView from './components/ProfileView';
 import { AnimatePresence, motion } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 
@@ -28,6 +30,8 @@ interface UserData {
   following: string[];
   followers: string[];
   profileImage?: string;
+  location?: string;
+  website?: string;
   credentials: Array<{ id: string; title: string; issuer: string; date: string }>;
   documents: Array<{ id: string; title: string; category: string; date: string; status: string; tags: string[] }>;
 }
@@ -376,8 +380,10 @@ export default function App() {
   const [editBio, setEditBio] = useState('');
   const [editIsVerified, setEditIsVerified] = useState(false);
   const [editProfileImage, setEditProfileImage] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
 
-  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs' | 'search' | 'network' | 'activity'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs' | 'search' | 'network' | 'activity' | 'messaging'>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -479,6 +485,8 @@ export default function App() {
       setEditBio(user.professional_bio);
       setEditIsVerified(user.is_verified);
       setEditProfileImage(user.profileImage || '');
+      setEditLocation(user.location || '');
+      setEditWebsite(user.website || '');
       setIsEditProfileOpen(true);
     }
   };
@@ -492,9 +500,11 @@ export default function App() {
         username: editUsername,
         professional_bio: editBio,
         is_verified: editIsVerified,
-        profileImage: editProfileImage
+        profileImage: editProfileImage,
+        location: editLocation,
+        website: editWebsite
       });
-      setUser({ ...user, username: editUsername, professional_bio: editBio, is_verified: editIsVerified, profileImage: editProfileImage });
+      setUser({ ...user, username: editUsername, professional_bio: editBio, is_verified: editIsVerified, profileImage: editProfileImage, location: editLocation, website: editWebsite });
       setIsEditProfileOpen(false);
       toast.success('Profile updated');
     } catch (error) {
@@ -729,7 +739,18 @@ export default function App() {
             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-1 hover:text-primary-container transition-colors rounded-full hover:bg-surface-container-high focus:outline-none">
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            <User onClick={() => setCurrentView('profile')} className="w-5 h-5 hover:text-primary-container cursor-pointer transition-colors" />
+            <div 
+              onClick={() => setCurrentView('profile')}
+              className={`w-8 h-8 rounded-lg overflow-hidden border cursor-pointer transition-all ${currentView === 'profile' ? 'border-primary-container ring-2 ring-primary-container/20' : 'border-outline-variant/30 hover:border-primary-container'}`}
+            >
+              {user?.profileImage ? (
+                <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-surface-container flex items-center justify-center">
+                  <User className="w-4 h-4 text-on-surface-variant" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -764,10 +785,10 @@ export default function App() {
           </div>
         </button>
         
-        <button onClick={() => setIsDMOpen(true)} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${isDMOpen ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
+        <button onClick={() => setCurrentView('messaging')} className={`p-2 transition-all flex flex-col items-center gap-1 bg-transparent border-none outline-none ${currentView === 'messaging' ? 'text-on-surface' : 'text-outline hover:text-on-surface'}`}>
           <div className="relative flex flex-col items-center">
-            <Mail className="w-6 h-6" fill={isDMOpen ? 'currentColor' : 'none'} />
-            {isDMOpen && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
+            <Mail className="w-6 h-6" fill={currentView === 'messaging' ? 'currentColor' : 'none'} />
+            {currentView === 'messaging' && <span className="absolute -bottom-[8px] w-1 h-1 rounded-full bg-on-surface"></span>}
           </div>
         </button>
       </div>
@@ -828,9 +849,9 @@ export default function App() {
                 <Shield className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">The Lounge</span>}
               </button>
-              <button onClick={() => setIsDMOpen(true)} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-primary-container hover:bg-primary-container/10 border border-transparent hover:border-primary-container/30`}>
+              <button onClick={() => setCurrentView('messaging')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'messaging' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
                 <MessageSquare className="w-4 h-4" />
-                {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Direct Messages</span>}
+                {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Messaging</span>}
               </button>
               <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all text-secondary hover:bg-surface-container-high border border-transparent`}>
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -985,151 +1006,13 @@ export default function App() {
           )}
 
           {currentView === 'profile' && (
-            <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="p-4 lg:p-10 max-w-4xl mx-auto w-full min-h-[calc(100vh-60px)] pb-[100px]">
-              <div className="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 lg:p-8 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                <div className="flex items-center gap-6">
-                  <div className="relative">
-                    {user?.profileImage ? (
-                      <img alt="User Avatar" className="w-24 h-24 rounded-full border-2 border-primary-container object-cover" src={user.profileImage} />
-                    ) : (
-                      <img alt="User Avatar" className="w-24 h-24 rounded-full border-2 border-primary-container object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCOWJ5vZEovondagcWGriDKF5gytHqkiFpqOXiKOfy1Tni5G8a7lVjfW-EWggSDJuumPqN2dAQga2N-YT6gA4CrP-qX_I52u-0woFdq9dDLfhsk1HshhH6v0GZAyBnysdTlHjZwoCxuBIzAP2EqND_q8lGS7tXREUaBg-QcLs8m3nkAOa-a254ival6t9EfDvrwrH5oeD_mfOsYwf5vg_zmYgQ2Z5ivEwNu1nTbfFpMj50Yt_es5P2aVYFq5LhuowjdJUxBNGHEaUB" />
-                    )}
-                    <div className="absolute -bottom-2 -right-2 bg-[#00FFAB] text-black text-[8px] font-black px-2 py-1 rounded-full shadow-[0_0_10px_rgba(0,255,171,0.5)]">PRO</div>
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-black font-headline text-primary tracking-tighter flex items-center gap-3">
-                      {user?.username || 'Loading...'}
-                      {user?.is_verified && <CheckCircle2 className="w-6 h-6 text-primary-container" />}
-                    </h1>
-                    <p className="text-secondary font-label tracking-widest uppercase mt-2">{user?.professional_bio}</p>
-                    
-                    <div className="flex flex-wrap gap-4 mt-4">
-                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
-                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Nodes</span>
-                        <span className="text-sm font-black text-[#00FFAB]">{user?.nodes?.toLocaleString() || '0'}</span>
-                      </div>
-                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
-                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Trust</span>
-                        <span className="text-sm font-black text-[#00FFAB]">{user?.trust_score || '0'}%</span>
-                      </div>
-                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
-                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Followers</span>
-                        <span className="text-sm font-black text-primary">{user?.followers?.length || '0'}</span>
-                      </div>
-                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
-                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Following</span>
-                        <span className="text-sm font-black text-primary">{user?.following?.length || '0'}</span>
-                      </div>
-                      <div className="bg-surface-container px-3 py-1 rounded border border-outline-variant/10">
-                        <span className="text-[10px] text-outline uppercase tracking-widest mr-2">Vibes</span>
-                        <span className="text-sm font-black text-primary">{posts.filter(p => p.authorId === user?.id).length}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <button onClick={openEditProfile} className="flex items-center gap-2 bg-surface-container px-4 py-2 rounded text-xs font-bold font-label uppercase tracking-widest text-secondary hover:text-primary hover:bg-surface-container-high transition-colors">
-                  <Edit2 className="w-4 h-4" /> Edit Profile
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                  <h3 className="font-headline text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                    <Radio className="w-5 h-5 text-primary-container" />
-                    Your Transmissions
-                  </h3>
-                  <div className="space-y-4">
-                    {posts.filter(p => p.author === user?.username || (p.type === 'GIG' && user?.username === '0x_founder')).length === 0 ? (
-                      <div className="text-center p-8 text-outline font-label text-sm bg-surface-container-lowest rounded-xl border border-outline-variant/20">
-                        No transmissions found.
-                      </div>
-                    ) : (
-                      posts.filter(p => p.author === user?.username || (p.type === 'GIG' && user?.username === '0x_founder')).map(post => (
-                        <div key={post.id} className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/20 hover:border-primary-container/30 transition-all group">
-                          {post.type === 'VIBE' ? (
-                            <>
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-label text-xs font-bold text-primary-container">{post.author}</span>
-                                  <span className="text-xs text-outline">• {post.time}</span>
-                                </div>
-                                <span className="font-label text-[10px] uppercase tracking-widest text-secondary bg-surface-container px-2 py-1 rounded group-hover:bg-primary-container/10 group-hover:text-primary-container transition-colors">Vibe</span>
-                              </div>
-                              <p className="font-body text-sm text-on-surface leading-relaxed">{post.content}</p>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex justify-between items-start mb-3">
-                                <span className="font-label text-[10px] uppercase tracking-widest text-secondary bg-surface-container px-2 py-1 rounded group-hover:bg-primary-container/10 group-hover:text-primary-container transition-colors">Gig</span>
-                                <span className="text-xs text-outline">{post.readTime}</span>
-                              </div>
-                              <h3 className="font-headline font-bold text-lg text-primary mb-2">{post.title}</h3>
-                              <p className="font-body text-sm text-secondary mb-4">{post.description}</p>
-                              <span className="text-xs font-label uppercase tracking-widest text-primary-container">{post.category}</span>
-                            </>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="font-headline text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-[#00FFAB]" />
-                      Credentials
-                    </h3>
-                    <div className="space-y-3">
-                      {user?.credentials?.map(cred => (
-                        <div key={cred.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-[#00FFAB]/30 transition-all cursor-pointer">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-[8px] font-mono text-outline tracking-widest uppercase">{cred.issuer}</span>
-                            <CheckCircle2 className="w-3 h-3 text-[#00FFAB]" />
-                          </div>
-                          <p className="text-xs font-bold text-white mb-1">{cred.title}</p>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">{cred.date}</p>
-                        </div>
-                      ))}
-                      {(!user?.credentials || user.credentials.length === 0) && (
-                        <div className="text-center p-4 text-outline font-label text-[10px] uppercase tracking-widest border border-dashed border-outline-variant/20 rounded-xl">
-                          No credentials yet
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-headline text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary-container" />
-                      Documents
-                    </h3>
-                    <div className="space-y-3">
-                      {user?.documents?.map(doc => (
-                        <div key={doc.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-primary-container/30 transition-all cursor-pointer">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-[8px] font-mono text-outline tracking-widest uppercase">{doc.id}</span>
-                            {doc.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-[#00FFAB]" />}
-                          </div>
-                          <p className="text-xs font-bold text-white mb-1">{doc.title}</p>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">{doc.category}</p>
-                        </div>
-                      ))}
-                      {(!user?.documents || user.documents.length === 0) && (
-                        <div className="text-center p-4 text-outline font-label text-[10px] uppercase tracking-widest border border-dashed border-outline-variant/20 rounded-xl">
-                          No documents yet
-                        </div>
-                      )}
-                      <button 
-                        onClick={() => setCurrentView('gigs')}
-                        className="w-full py-3 border border-dashed border-outline-variant/30 rounded-xl text-[10px] font-bold text-outline uppercase tracking-widest hover:border-[#00FFAB]/50 hover:text-[#00FFAB] transition-all"
-                      >
-                        View Full Repository
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+              <ProfileView 
+                user={user} 
+                posts={posts} 
+                onEdit={openEditProfile} 
+                onNavigateToGigs={() => setCurrentView('gigs')}
+              />
             </motion.div>
           )}
 
@@ -1158,7 +1041,16 @@ export default function App() {
                 onBack={() => setCurrentView('home')}
                 onNavigateToProfile={() => setCurrentView('profile')}
                 onNavigateToPost={(id) => { toast('Navigating to post ' + id); setCurrentView('home'); }}
-                onNavigateToDMs={() => setIsDMOpen(true)}
+                onNavigateToDMs={() => setCurrentView('messaging')}
+              />
+            </motion.div>
+          )}
+
+          {currentView === 'messaging' && (
+            <motion.div key="messaging" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+              <MessagingView 
+                currentUser={user} 
+                onNavigateToProfile={() => setCurrentView('profile')}
               />
             </motion.div>
           )}

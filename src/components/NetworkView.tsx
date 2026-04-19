@@ -181,6 +181,10 @@ const ConnectionGraph: React.FC<{ currentUser: any }> = ({ currentUser }) => {
 };
 
 const WhatsAppStyleGroups: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'large'>('all');
+  const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
+
   const groups = [
     {
       id: 'g1',
@@ -189,6 +193,7 @@ const WhatsAppStyleGroups: React.FC = () => {
       time: '12:45',
       members: 156,
       unread: 3,
+      activity: 85,
       image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100',
       isVerified: true
     },
@@ -199,6 +204,7 @@ const WhatsAppStyleGroups: React.FC = () => {
       time: '11:20',
       members: 12,
       unread: 0,
+      activity: 40,
       image: 'https://images.unsplash.com/photo-1570126618983-dd752394636a?w=100',
       isLocked: true
     },
@@ -209,66 +215,147 @@ const WhatsAppStyleGroups: React.FC = () => {
       time: 'Yesterday',
       members: 842,
       unread: 12,
+      activity: 95,
       image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc51?w=100',
       isPublic: true
     }
   ];
 
+  const filteredGroups = groups
+    .filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(g => {
+      if (filter === 'active') return g.activity > 80;
+      if (filter === 'large') return g.members > 100;
+      return true;
+    });
+
+  const handleJoin = (id: string) => {
+    if (!joinedGroups.includes(id)) {
+      setJoinedGroups([...joinedGroups, id]);
+    }
+  };
+
   return (
     <section className="mb-10">
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
           <h2 className="text-2xl font-black tracking-tighter mb-1 font-headline">Pulse Groups</h2>
           <p className="text-xs text-outline font-medium tracking-tight">Real-time tactical communication hubs.</p>
         </div>
-        <button className="p-2 bg-primary-container/10 text-primary-container rounded-lg hover:bg-primary-container/20 transition-colors">
-          <MessageCircle className="w-5 h-5" />
-        </button>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+            <input 
+              type="text" 
+              placeholder="Search groups..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/10 rounded-xl text-xs font-bold focus:outline-none focus:border-primary-container/40 transition-all w-full sm:w-48"
+            />
+          </div>
+          <div className="flex gap-2 bg-surface-container-low p-1 rounded-xl border border-outline-variant/10">
+            {(['all', 'active', 'large'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  filter === f ? 'bg-primary-container text-on-primary-fixed shadow-sm' : 'text-outline hover:text-on-surface'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-1 bg-surface-container-low border border-outline-variant/10 rounded-[32px] overflow-hidden">
-        {groups.map((group) => (
-          <div key={group.id} className="p-4 flex items-center gap-4 hover:bg-surface-container transition-colors cursor-pointer border-b border-outline-variant/5 last:border-0 group/item">
-            <div className="relative">
-              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-outline-variant/20 shadow-md transform group-hover/item:scale-105 transition-transform">
-                <img src={group.image} alt={group.name} className="w-full h-full object-cover" />
-              </div>
-              {group.isLocked && (
-                <div className="absolute -top-1 -right-1 bg-surface-container p-1 rounded-lg border border-outline-variant/30 text-primary-container shadow-sm">
-                  <Lock className="w-3 h-3" />
+        <AnimatePresence mode="popLayout">
+          {filteredGroups.map((group) => (
+            <motion.div 
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              key={group.id} 
+              className="p-4 flex items-center gap-4 hover:bg-surface-container transition-colors cursor-pointer border-b border-outline-variant/5 last:border-0 group/item"
+            >
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl overflow-hidden border border-outline-variant/20 shadow-md transform group-hover/item:scale-105 transition-transform">
+                  <img src={group.image} alt={group.name} className="w-full h-full object-cover" />
                 </div>
-              )}
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-center mb-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <h3 className="font-bold text-base truncate uppercase tracking-tight">{group.name}</h3>
-                  {group.isVerified && <Check className="w-3.5 h-3.5 text-[#00FFAB]" />}
-                </div>
-                <span className="text-[10px] text-outline font-medium">{group.time}</span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-secondary truncate max-w-[200px] font-medium">{group.lastMessage}</p>
-                {group.unread > 0 && (
-                  <span className="bg-[#00FFAB] text-black text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(0,255,171,0.5)]">
-                    {group.unread}
-                  </span>
+                {group.isLocked && (
+                  <div className="absolute -top-1 -right-1 bg-surface-container p-1 rounded-lg border border-outline-variant/30 text-primary-container shadow-sm">
+                    <Lock className="w-3 h-3" />
+                  </div>
                 )}
               </div>
-            </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h3 className="font-bold text-base truncate uppercase tracking-tight">{group.name}</h3>
+                    {group.isVerified && <Check className="w-3.5 h-3.5 text-[#00FFAB]" />}
+                  </div>
+                  <span className="text-[10px] text-outline font-medium">{group.time}</span>
+                </div>
+                
+                <div className="flex justify-between items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-secondary truncate font-medium mb-1">{group.lastMessage}</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-outline uppercase tracking-widest">{group.members} nodes</span>
+                      <div className="flex items-center gap-1">
+                        <TrendingUp className={`w-3 h-3 ${group.activity > 80 ? 'text-[#00FFAB]' : 'text-outline'}`} />
+                        <span className="text-[10px] font-bold text-outline">{group.activity}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    {group.unread > 0 && (
+                      <span className="bg-[#00FFAB] text-black text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(0,255,171,0.5)]">
+                        {group.unread}
+                      </span>
+                    )}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleJoin(group.id); }}
+                      disabled={joinedGroups.includes(group.id)}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
+                        joinedGroups.includes(group.id) 
+                          ? 'border-[#00FFAB]/20 text-[#00FFAB] bg-[#00FFAB]/5' 
+                          : 'border-outline-variant/30 text-on-surface hover:bg-surface-container-highest'
+                      }`}
+                    >
+                      {joinedGroups.includes(group.id) ? 'Joined' : 'Join'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        
+        {filteredGroups.length === 0 && (
+          <div className="p-12 text-center">
+            <p className="text-outline font-bold text-sm">No signals found matching your filter.</p>
           </div>
-        ))}
+        )}
       </div>
-      <button className="w-full py-4 text-primary-container font-black text-[10px] uppercase tracking-widest mt-4 hover:opacity-80 transition-opacity">
-        Discover more groups
-      </button>
     </section>
   );
 };
 
+
 const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProfile }) => {
+  const [connectedIds, setConnectedIds] = useState<string[]>([]);
+  
+  const handleConnect = (id: string) => {
+    if (!connectedIds.includes(id)) {
+      setConnectedIds([...connectedIds, id]);
+    }
+  };
+
   const pendingInvites = [
     {
       id: 'invite-1',
@@ -414,13 +501,34 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary-container">{person.badge}</span>
                   </div>
                 )}
-                <div className="w-24 h-24 rounded-3xl overflow-hidden mb-6 border border-outline-variant/30 group-hover:scale-105 transition-transform duration-500 shadow-xl">
+                <div className="w-24 h-24 rounded-3xl overflow-hidden mb-6 border border-outline-variant/30 group-hover:scale-105 transition-transform duration-500 shadow-xl relative">
                   <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
+                  {connectedIds.includes(person.id) && (
+                    <div className="absolute inset-0 bg-primary-container/40 backdrop-blur-sm flex items-center justify-center">
+                      <UserCheck className="w-8 h-8 text-on-primary-fixed" />
+                    </div>
+                  )}
                 </div>
                 <h3 className="font-black text-xl mb-1">{person.name}</h3>
                 <p className="text-xs text-outline font-medium mb-8 leading-relaxed max-w-[200px] h-10">{person.role}</p>
-                <button className="w-full py-4 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-surface-container-highest transition-all active:scale-[0.98]">
-                  Connect
+                <button 
+                  onClick={() => handleConnect(person.id)}
+                  disabled={connectedIds.includes(person.id)}
+                  className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                    connectedIds.includes(person.id)
+                      ? 'bg-[#00FFAB]/10 border border-[#00FFAB]/30 text-[#00FFAB]'
+                      : 'bg-surface-container-high border border-outline-variant/20 text-on-surface hover:bg-surface-container-highest'
+                  }`}
+                >
+                  {connectedIds.includes(person.id) ? (
+                    <>
+                      <Check className="w-4 h-4" /> Connected
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" /> Connect
+                    </>
+                  )}
                 </button>
               </div>
             ))}

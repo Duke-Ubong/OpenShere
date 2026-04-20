@@ -29,7 +29,6 @@ export async function seedDatabase() {
       professional_bio: 'Automated System Logs',
       is_verified: true,
       nodes: 0,
-      trust_score: 100,
       following: [],
       credentials: [],
       documents: []
@@ -41,7 +40,6 @@ export async function seedDatabase() {
       professional_bio: 'Principal Architect @ OpenSphere. Building the future of vibe-coded systems. Ex-Google, Ex-Meta.',
       is_verified: true,
       nodes: 1242,
-      trust_score: 98,
       following: [],
       credentials: [
         { id: '1', title: 'Senior Systems Architect', issuer: 'OpenSphere', date: '2024' },
@@ -60,7 +58,6 @@ export async function seedDatabase() {
       professional_bio: 'L3 Network Specialist',
       is_verified: true,
       nodes: 800,
-      trust_score: 95,
       following: [],
       credentials: [],
       documents: []
@@ -72,7 +69,6 @@ export async function seedDatabase() {
       professional_bio: 'Decentralized Validator Expert',
       is_verified: true,
       nodes: 1500,
-      trust_score: 99,
       following: [],
       credentials: [],
       documents: []
@@ -84,7 +80,6 @@ export async function seedDatabase() {
       professional_bio: 'Scaling is a mindset.',
       is_verified: true,
       nodes: 5000,
-      trust_score: 85,
       following: [],
       credentials: [],
       documents: []

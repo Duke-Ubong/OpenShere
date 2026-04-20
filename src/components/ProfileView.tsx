@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Heart, MessageSquare, RefreshCw, MapPin, 
   Link as LinkIcon, Share2, ArrowLeft, Calendar, 
-  LogOut, Verified, User, Zap, Grid, Trash2, Send, Loader2
+  LogOut, Verified, User, Zap, Grid, Trash2, Send, Loader2,
+  BarChart2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '../firebase';
@@ -210,11 +211,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
           <div className="flex gap-5 text-sm pt-1">
             <div 
-              onClick={() => toast.info('Accessing network node connections...')}
+              onClick={() => toast.info('Accessing transmission reach and audience scale...')}
               className="flex items-center gap-1 group cursor-pointer"
             >
-              <span className="font-black text-on-surface group-hover:underline">{user?.following?.length || 0}</span>
-              <span className="text-outline">Following</span>
+              <span className="font-black text-on-surface group-hover:underline">{(posts.length * 1234 + (user?.followers?.length || 0) * 89).toLocaleString()}</span>
+              <span className="text-outline">Transmission</span>
             </div>
             <div 
               onClick={() => toast.info('Accessing network node subscribers...')}
@@ -223,24 +224,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               <span className="font-black text-on-surface group-hover:underline">{user?.followers?.length || 0}</span>
               <span className="text-outline">Followers</span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Vibe Intensity Indicator - Transformed for X layout but remaining true to ProRaw DNA */}
-      <div className="mx-4 my-2 px-4 py-3 bg-primary-container/[0.03] border border-outline-variant/10 rounded-2xl flex items-center justify-between group">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_10px_rgba(0,255,171,0.5)]"></div>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-container">Transmission Level</span>
-        </div>
-        <div className="flex gap-1 items-center">
-          <span className="text-[10px] font-mono text-outline/50 mr-2">{(user?.exposure_dial || 50)}%</span>
-          <div className="w-32 h-1 bg-surface-container-high rounded-full overflow-hidden">
-             <motion.div 
-               initial={{ width: 0 }} 
-               animate={{ width: `${user?.exposure_dial || 50}%` }} 
-               className="h-full bg-primary-container shadow-[0_0_8px_rgba(0,255,171,0.3)]"
-             ></motion.div>
           </div>
         </div>
       </div>
@@ -330,7 +313,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center pt-2.5 max-w-[400px] text-outline">
+                    <div className="flex justify-between items-center pt-2.5 max-w-[440px] text-outline">
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -376,6 +359,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         <span className={`text-[12px] font-bold ${post.likedBy?.includes(user?.id) ? 'text-[#FF2D55]' : ''}`}>
                           {post.stats?.likes || post.likedBy?.length || 0}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2 hover:text-primary-container transition-colors group/action">
+                        <div className="p-2 rounded-full group-hover/action:bg-primary-container/10 transition-colors">
+                          <BarChart2 className="w-[18px] h-[18px]" />
+                        </div>
+                        <span className="text-[12px] font-bold">{((post.stats?.likes || 0) * 45 + (post.stats?.comments || 0) * 88 + 124).toLocaleString()}</span>
                       </div>
                       <div 
                         onClick={(e) => {

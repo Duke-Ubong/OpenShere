@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Send, User, MessageSquare, ChevronLeft } from 'lucide-react';
+import { X, Send, User, MessageSquare, ChevronLeft, Smile, Paperclip, Camera, Mic } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -115,25 +115,25 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
         exit={{ opacity: 0, x: 300 }}
         className="fixed right-0 top-0 h-full w-full sm:w-[400px] bg-[#1C1B1B] border-l border-[#3A4A40]/30 z-[60] shadow-2xl flex flex-col"
       >
-        <div className="p-4 border-b border-[#3A4A40]/20 flex items-center justify-between bg-[#141414]">
-          <div className="flex items-center gap-3">
+        <div className="px-4 py-3 border-b border-[#3A4A40]/20 flex items-center justify-between bg-[#141414]">
+          <div className="flex items-center gap-2">
             {activeConversationId && (
-              <button onClick={() => setActiveConversationId(null)} className="p-1 hover:bg-white/5 rounded-full transition-colors">
+              <button onClick={() => setActiveConversationId(null)} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
                 <ChevronLeft className="w-5 h-5 text-outline" />
               </button>
             )}
-            <h2 className="font-headline font-bold text-primary tracking-tight">
-              {activeConversationId ? (otherUser?.username || 'Chat') : 'Direct Messages'}
+            <h2 className="font-headline font-black text-primary tracking-tight text-base uppercase">
+              {activeConversationId ? (otherUser?.username || 'Signal') : 'Archives'}
             </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
             <X className="w-5 h-5 text-outline" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden flex flex-col">
           {!activeConversationId ? (
-            <div className="p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {conversations.length === 0 ? (
                 <div className="text-center py-20 text-outline font-label text-sm uppercase tracking-widest opacity-50">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -151,7 +151,10 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
               )}
             </div>
           ) : (
-            <div ref={scrollRef} className="p-4 space-y-4 h-full overflow-y-auto">
+            <div 
+              ref={scrollRef} 
+              className="flex-1 p-3 md:p-4 space-y-3 h-full overflow-y-auto bg-surface/30 custom-scrollbar"
+            >
               {messages.map(msg => {
                 const isMe = msg.senderId === currentUser?.id;
                 return (
@@ -180,19 +183,48 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
         </div>
 
         {activeConversationId && (
-          <form onSubmit={handleSendMessage} className="p-4 border-t border-[#3A4A40]/20 bg-[#141414]">
-            <div className="flex gap-2">
-              <input 
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-surface-container-lowest border border-[#3A4A40]/20 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-primary-container transition-all"
-              />
-              <button type="submit" className="p-2 bg-primary-container text-on-primary-container rounded-lg hover:brightness-110 transition-all active:scale-95">
-                <Send className="w-5 h-5" />
-              </button>
-            </div>
-          </form>
+          <div className="px-3 py-3 border-t border-[#3A4A40]/20 bg-[#141414]">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2 max-w-xl mx-auto">
+              <div className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-full px-2 py-1 shadow-inner">
+                <button type="button" className="p-1.5 text-outline hover:text-on-surface transition-all">
+                  <Smile className="w-5 h-5" />
+                </button>
+                <input 
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Message"
+                  className="flex-1 bg-transparent border-none px-2 py-2 text-xs focus:outline-none transition-all font-body placeholder:text-outline/40"
+                />
+                <div className="flex items-center gap-0.5">
+                  <button type="button" className="p-1.5 text-outline hover:text-on-surface transition-all">
+                    <Paperclip className="w-5 h-5 -rotate-45" />
+                  </button>
+                  {!newMessage.trim() && (
+                    <button type="button" className="p-1.5 text-outline hover:text-on-surface transition-all">
+                      <Camera className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="shrink-0">
+                {newMessage.trim() ? (
+                  <button 
+                    type="submit" 
+                    className="w-10 h-10 bg-primary-container text-on-primary rounded-full flex items-center justify-center shadow-md hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    <Send className="w-4.5 h-4.5 fill-current ml-0.5" />
+                  </button>
+                ) : (
+                  <button 
+                    type="button"
+                    className="w-10 h-10 bg-primary-container text-on-primary rounded-full flex items-center justify-center shadow-md hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    <Mic className="w-4.5 h-4.5" />
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
         )}
       </motion.div>
     </AnimatePresence>

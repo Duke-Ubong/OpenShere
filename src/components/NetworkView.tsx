@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Search, User, Bell, ChevronRight, UserPlus, Check, X, ShieldCheck, Mail, Users, Plus, Hash, Globe, Lock, MessageCircle, TrendingUp, MoreHorizontal, UserCheck } from 'lucide-react';
+import { Search, User, Bell, ChevronRight, UserPlus, Check, X, ShieldCheck, Mail, Users, Plus, Hash, Globe, Lock, MessageCircle, TrendingUp, MoreHorizontal, UserCheck, BarChart2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as d3 from 'd3';
+import { toast } from 'sonner';
 
 interface NetworkViewProps {
   currentUser: any;
@@ -74,6 +75,10 @@ const ConnectionGraph: React.FC<{ currentUser: any }> = ({ currentUser }) => {
       .selectAll("g")
       .data(nodes)
       .join("g")
+      .on("click", (event, d) => {
+        event.stopPropagation();
+        toast(`Neural link active: ${d.name}. Accessing credential vault...`);
+      })
       .call(d3.drag<SVGGElement, Node>()
         .on("start", dragstarted)
         .on("drag", dragged)
@@ -229,9 +234,13 @@ const WhatsAppStyleGroups: React.FC = () => {
       return true;
     });
 
-  const handleJoin = (id: string) => {
-    if (!joinedGroups.includes(id)) {
-      setJoinedGroups([...joinedGroups, id]);
+  const handleToggleGroup = (id: string, name: string) => {
+    if (joinedGroups.includes(id)) {
+      setJoinedGroups(prev => prev.filter(gid => gid !== id));
+      toast.error(`Disconnected from ${name}.`);
+    } else {
+      setJoinedGroups(prev => [...prev, id]);
+      toast.success(`Encrypted link established with ${name}.`);
     }
   };
 
@@ -310,6 +319,10 @@ const WhatsAppStyleGroups: React.FC = () => {
                         <TrendingUp className={`w-3 h-3 ${group.activity > 80 ? 'text-[#00FFAB]' : 'text-outline'}`} />
                         <span className="text-[10px] font-bold text-outline">{group.activity}%</span>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <BarChart2 className="w-3 h-3 text-primary-container" />
+                        <span className="text-[10px] font-bold text-outline">{(group.members * 12 + group.activity * 5).toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -319,8 +332,7 @@ const WhatsAppStyleGroups: React.FC = () => {
                       </span>
                     )}
                     <button 
-                      onClick={(e) => { e.stopPropagation(); handleJoin(group.id); }}
-                      disabled={joinedGroups.includes(group.id)}
+                      onClick={(e) => { e.stopPropagation(); handleToggleGroup(group.id, group.name); }}
                       className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
                         joinedGroups.includes(group.id) 
                           ? 'border-[#00FFAB]/20 text-[#00FFAB] bg-[#00FFAB]/5' 
@@ -349,14 +361,7 @@ const WhatsAppStyleGroups: React.FC = () => {
 
 const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProfile }) => {
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
-  
-  const handleConnect = (id: string) => {
-    if (!connectedIds.includes(id)) {
-      setConnectedIds([...connectedIds, id]);
-    }
-  };
-
-  const pendingInvites = [
+  const [invites, setInvites] = useState([
     {
       id: 'invite-1',
       name: 'Sarah Chen',
@@ -371,7 +376,25 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
       note: 'Mutual connections: 12',
       image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop'
     }
-  ];
+  ]);
+  
+  const handleConnect = (id: string) => {
+    if (!connectedIds.includes(id)) {
+      setConnectedIds([...connectedIds, id]);
+      toast.success('Connection request synchronized.');
+    }
+  };
+
+  const handleAcceptInvite = (id: string, name: string) => {
+    setInvites(prev => prev.filter(inv => inv.id !== id));
+    toast.success(`Access granted to ${name}.`);
+    setConnectedIds(prev => [...prev, id]); // Add to connections
+  };
+
+  const handleIgnoreInvite = (id: string, name: string) => {
+    setInvites(prev => prev.filter(inv => inv.id !== id));
+    toast.error(`Identity sync declined for ${name}.`);
+  };
 
   const recommendations = [
     {
@@ -404,8 +427,21 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
            <h1 className="text-xl font-bold tracking-tight">The Neural Network</h1>
         </div>
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface group">
-            <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+            <input 
+              type="text" 
+              placeholder="Search nodes..."
+              className="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/10 rounded-full text-xs font-bold focus:outline-none focus:border-primary-container/40 transition-all w-48"
+              onFocus={() => toast.info('Neural search active')}
+            />
+          </div>
+          <button 
+            onClick={() => toast('No new signal notifications')}
+            className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface group relative"
+          >
+            <Bell className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <div className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface shadow-sm"></div>
           </button>
           <div 
             onClick={onNavigateToProfile}
@@ -425,17 +461,35 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
       <div className="px-6 py-6 max-w-5xl mx-auto">
         {/* Connection Visualizer Section */}
         <section className="mb-10">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-2xl font-black tracking-tighter mb-1 font-headline uppercase">Neural Map</h2>
+              <p className="text-xs text-outline font-medium tracking-tight">Visualizing secondary and tertiary synergies.</p>
+            </div>
+            <button 
+              onClick={() => toast.info('Recalculating neural weights...')}
+              className="p-2 bg-surface-container-low border border-outline-variant/10 rounded-lg hover:text-primary-container transition-colors"
+            >
+              <TrendingUp className="w-4 h-4" />
+            </button>
+          </div>
           <ConnectionGraph currentUser={currentUser} />
         </section>
 
         {/* Global Connection Stats */}
         <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-surface-container-low border border-outline-variant/10 p-6 rounded-[32px] group hover:border-[#00FFAB]/30 transition-all cursor-default">
+          <div 
+            onClick={() => toast.info('Accessing global node register...')}
+            className="bg-surface-container-low border border-outline-variant/10 p-6 rounded-[32px] group hover:border-[#00FFAB]/30 transition-all cursor-pointer active:scale-[0.98]"
+          >
             <TrendingUp className="w-6 h-6 text-[#00FFAB] mb-4 group-hover:translate-y-[-2px] transition-transform" />
             <p className="text-3xl font-black tracking-tighter">8,432</p>
             <p className="text-[10px] text-outline uppercase tracking-widest font-bold">Network Nodes</p>
           </div>
-          <div className="bg-surface-container-low border border-outline-variant/10 p-6 rounded-[32px] group hover:border-primary-container/30 transition-all cursor-default">
+          <div 
+            onClick={() => toast.info('Viewing active synergy map...')}
+            className="bg-surface-container-low border border-outline-variant/10 p-6 rounded-[32px] group hover:border-primary-container/30 transition-all cursor-pointer active:scale-[0.98]"
+          >
             <UserCheck className="w-6 h-6 text-primary-container mb-4 group-hover:translate-y-[-2px] transition-transform" />
             <p className="text-3xl font-black tracking-tighter">114</p>
             <p className="text-[10px] text-outline uppercase tracking-widest font-bold">Direct Synergies</p>
@@ -449,34 +503,57 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
               <h2 className="text-2xl font-black tracking-tighter mb-1 font-headline">Pending Access</h2>
               <p className="text-xs text-outline font-medium tracking-tight">Identity synchronization required.</p>
             </div>
-            <button className="text-[10px] font-black uppercase tracking-widest text-primary-container hover:opacity-80 transition-opacity">
-              Queue (14)
+            <button 
+              onClick={() => toast.info('Accessing full request queue...')}
+              className="text-[10px] font-black uppercase tracking-widest text-primary-container hover:opacity-80 transition-opacity"
+            >
+              Queue ({invites.length + 12})
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pendingInvites.map(invite => (
-              <div key={invite.id} className="bg-surface-container-low border border-outline-variant/10 rounded-3xl p-6 transition-all hover:bg-surface-container shadow-sm group/invite">
-                <div className="flex gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden border border-outline-variant/30 flex-shrink-0 group-hover/invite:scale-105 transition-transform">
-                    <img src={invite.image} alt={invite.name} className="w-full h-full object-cover" />
+            <AnimatePresence mode="popLayout">
+              {invites.map(invite => (
+                <motion.div 
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  key={invite.id} 
+                  className="bg-surface-container-low border border-outline-variant/10 rounded-3xl p-6 transition-all hover:bg-surface-container shadow-sm group/invite"
+                >
+                  <div className="flex gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden border border-outline-variant/30 flex-shrink-0 group-hover/invite:scale-105 transition-transform">
+                      <img src={invite.image} alt={invite.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg leading-tight mb-0.5 truncate">{invite.name}</h3>
+                      <p className="text-xs text-primary-container font-black uppercase tracking-tighter mb-2 truncate">{invite.role}</p>
+                      <p className="text-[10px] text-secondary italic leading-tight line-clamp-2">{invite.note}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-lg leading-tight mb-0.5 truncate">{invite.name}</h3>
-                    <p className="text-xs text-primary-container font-black uppercase tracking-tighter mb-2 truncate">{invite.role}</p>
-                    <p className="text-[10px] text-secondary italic leading-tight line-clamp-2">{invite.note}</p>
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    <button 
+                      onClick={() => handleIgnoreInvite(invite.id, invite.name)}
+                      className="py-2.5 bg-surface-container-high text-on-surface rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-surface-container-highest transition-colors"
+                    >
+                      Ignore
+                    </button>
+                    <button 
+                      onClick={() => handleAcceptInvite(invite.id, invite.name)}
+                      className="py-2.5 bg-on-surface text-surface rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
+                    >
+                      Accept
+                    </button>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <button className="py-2.5 bg-surface-container-high text-on-surface rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-surface-container-highest transition-colors">
-                    Ignore
-                  </button>
-                  <button className="py-2.5 bg-on-surface text-surface rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">
-                    Accept
-                  </button>
-                </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {invites.length === 0 && (
+              <div className="col-span-full py-8 text-center bg-surface-container-low rounded-3xl border border-dashed border-outline-variant/20">
+                <p className="text-sm font-bold text-outline uppercase tracking-widest">No pending access requests</p>
               </div>
-            ))}
+            )}
           </div>
         </section>
 
@@ -544,7 +621,16 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
           <p className="text-xs text-outline font-medium mb-8 leading-relaxed max-w-[240px]">
             Scale your professional synergies by synchronizing your global contact list with our neural mapping engine.
           </p>
-          <button className="px-10 py-4 bg-primary-container text-on-primary-fixed rounded-2xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+          <button 
+            onClick={() => {
+              toast.promise(new Promise(resolve => setTimeout(resolve, 2000)), {
+                loading: 'Synchronizing global contact list...',
+                success: '842 secondary nodes identified and mapped.',
+                error: 'Sync failed: Connection unstable.'
+              });
+            }}
+            className="px-10 py-4 bg-primary-container text-on-primary-fixed rounded-2xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary-container/20"
+          >
             SYNC GLOBAL CONTACTS
           </button>
         </div>

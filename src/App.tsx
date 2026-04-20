@@ -26,13 +26,11 @@ interface UserData {
   professional_bio: string;
   is_verified: boolean;
   nodes: number;
-  trust_score: number;
   following: string[];
   followers: string[];
   profileImage?: string;
   location?: string;
   website?: string;
-  exposure_dial?: number;
   competencies?: string[];
   credentials: Array<{ id: string; title: string; issuer: string; date: string }>;
   documents: Array<{ id: string; title: string; category: string; date: string; status: string; tags: string[] }>;
@@ -283,6 +281,12 @@ const PostCard: React.FC<{
               </div>
               {likesCount}
             </span>
+            <span className="flex items-center gap-1.5 group cursor-default transition-colors hover:text-primary-container">
+              <div className="p-1.5 rounded-full group-hover:bg-primary-container/10 transition-colors">
+                <BarChart2 className="w-4 h-4"/>
+              </div>
+              {((likesCount || 0) * 42 + (post.stats?.comments || 0) * 76 + 56).toLocaleString()}
+            </span>
           </div>
 
           <AnimatePresence>
@@ -385,7 +389,6 @@ export default function App() {
   const [editBannerImage, setEditBannerImage] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editWebsite, setEditWebsite] = useState('');
-  const [editExposureDial, setEditExposureDial] = useState(50);
   const [editCompetencies, setEditCompetencies] = useState<string>('');
 
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs' | 'search' | 'network' | 'activity' | 'messaging'>('home');
@@ -540,7 +543,6 @@ export default function App() {
       setEditBannerImage(user.bannerImage || '');
       setEditLocation(user.location || '');
       setEditWebsite(user.website || '');
-      setEditExposureDial(user.exposure_dial || 50);
       setEditCompetencies(user.competencies?.join(', ') || 'Systems Architecture, Editorial UI, Neural Branding');
       setIsEditProfileOpen(true);
     }
@@ -579,7 +581,6 @@ export default function App() {
         bannerImage: editBannerImage,
         location: editLocation,
         website: editWebsite,
-        exposure_dial: editExposureDial,
         competencies: editCompetencies.split(',').map(s => s.trim()).filter(Boolean),
         updatedAt: serverTimestamp()
       };
@@ -812,14 +813,21 @@ export default function App() {
           <WelcomeScreen onInitialize={() => setShowWelcome(false)} />
         </motion.div>
       ) : (
-        <motion.div key="app" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.2 }} className="min-h-screen max-w-[100vw] overflow-x-hidden bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed flex flex-col">
+        <motion.div 
+          key="app" 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ duration: 1, delay: 0.2 }} 
+          className={`min-h-screen max-w-[100vw] overflow-x-hidden bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed flex flex-col ${currentView === 'messaging' ? 'h-screen h-[100dvh] overflow-hidden' : ''}`}
+        >
           {/* TopNavBar - Smart Hide on Scroll */}
+      {currentView !== 'messaging' && (
       <motion.nav 
         initial={false}
         animate={{ 
-          y: (isNavVisible && currentView !== 'messaging') ? 0 : -100,
-          opacity: (isNavVisible && currentView !== 'messaging') ? 1 : 0,
-          scale: (isNavVisible && currentView !== 'messaging') ? 1 : 0.98 
+          y: isNavVisible ? 0 : -100,
+          opacity: isNavVisible ? 1 : 0,
+          scale: isNavVisible ? 1 : 0.98 
         }}
         transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
         className="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-surface border-b border-outline-variant/10 shadow-sm"
@@ -852,8 +860,10 @@ export default function App() {
           </div>
         </div>
       </motion.nav>
+      )}
 
       {/* Bottom Navigation Bar (Mobile) - Smart Hide */}
+      {currentView !== 'messaging' && (
       <motion.div 
         initial={false}
         animate={{ 
@@ -898,10 +908,11 @@ export default function App() {
           </div>
         </button>
       </motion.div>
+      )}
 
       {/* Floating Theme Toggle (Removed per user request) */}
         {/* SideNavBar - Collapses on Scroll Down */}
-        {currentView !== 'gigs' && (
+        {currentView !== 'gigs' && currentView !== 'messaging' && (
         <motion.aside 
           initial={false}
           animate={{ 
@@ -1006,7 +1017,7 @@ export default function App() {
         {/* Main Content Area */}
         <main 
           onScroll={handleScroll}
-          className={`flex-1 w-full bg-surface transition-all duration-300 ease-in-out ${currentView === 'gigs' ? 'lg:ml-0' : (isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')} ${currentView === 'messaging' ? 'h-screen' : ''}`}
+          className={`flex-1 w-full bg-surface transition-all duration-300 ease-in-out ${currentView === 'gigs' || currentView === 'messaging' ? 'lg:ml-0' : (isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')} ${currentView === 'messaging' ? 'h-screen' : ''}`}
         >
           <AnimatePresence mode="wait">
           {currentView === 'home' && (
@@ -1169,7 +1180,14 @@ export default function App() {
           )}
 
           {currentView === 'messaging' && (
-            <motion.div key="messaging" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+            <motion.div 
+              key="messaging" 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -10 }} 
+              transition={{ duration: 0.2 }}
+              className="h-full w-full overflow-hidden"
+            >
               <MessagingView 
                 currentUser={user} 
                 onNavigateToProfile={() => setCurrentView('profile')}
@@ -1492,45 +1510,6 @@ export default function App() {
                   />
                 </div>
 
-                {/* Vibe Tuning - Exposure Dial */}
-                <div className="p-8 bg-surface-container-high rounded-[32px] border border-primary-container/20 group/tuning">
-                  <div className="flex justify-between items-end mb-8">
-                    <div>
-                      <h3 className="font-headline font-black text-lg tracking-tight text-primary">Vibe Tuning</h3>
-                      <p className="font-label text-[9px] text-secondary tracking-widest uppercase mt-1">Adjust signal filter strength</p>
-                    </div>
-                    <div className="text-4xl font-black font-mono text-primary-container animate-pulse">{editExposureDial}%</div>
-                  </div>
-                  
-                  <div className="relative px-2">
-                    <input 
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={editExposureDial}
-                      onChange={(e) => setEditExposureDial(parseInt(e.target.value))}
-                      className="w-full h-2 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary-container"
-                    />
-                    <div className="absolute -top-6 left-0 right-0 flex justify-between px-2 text-[8px] font-black text-outline uppercase tracking-widest opacity-40">
-                      {[...Array(11)].map((_, i) => (
-                        <div key={i} className={`w-0.5 h-2 rounded-full ${i % 5 === 0 ? 'bg-primary-container h-3' : 'bg-outline'}`} />
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between mt-6">
-                    <div className="text-center group-hover/tuning:opacity-100 opacity-60 transition-opacity">
-                      <div className="text-[9px] font-black text-on-surface uppercase tracking-[0.2em] mb-1">Polished</div>
-                      <div className="text-[8px] font-medium text-outline">Corporate Accuracy</div>
-                    </div>
-                    <div className="text-center group-hover/tuning:opacity-100 opacity-60 transition-opacity">
-                      <div className="text-[9px] font-black text-[#00ffab] uppercase tracking-[0.2em] mb-1">Raw Pulse</div>
-                      <div className="text-[8px] font-medium text-outline">Unfiltered Signal</div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Permissions / Status */}
                 <div className="flex items-center justify-between p-6 bg-surface-container-low rounded-3xl border border-outline-variant/10">
                   <div className="flex items-center gap-4">
@@ -1590,6 +1569,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Mobile FAB for Creating Posts - Smart Hide */}
+      {currentView !== 'messaging' && (
       <motion.button
         initial={false}
         animate={{ 
@@ -1602,6 +1582,7 @@ export default function App() {
       >
         <Edit2 className="w-6 h-6" />
       </motion.button>
+      )}
 
       {/* Create Post Modal */}
       <CreatePostModal 

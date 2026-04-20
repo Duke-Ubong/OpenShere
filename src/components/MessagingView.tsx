@@ -4,7 +4,7 @@ import {
   Users as UsersIcon, Plus, ChevronLeft, Paperclip, 
   Smile, Mic, Send, MoreVertical, Phone, Video,
   CheckCheck, Clock, Archive, BellOff, Trash, 
-  Flag, Ban, MessageSquare
+  Flag, Ban, MessageSquare, ShieldCheck, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -49,18 +49,27 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
   const [searchQuery, setSearchQuery] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (initialChatId) {
-      setSelectedChatId(initialChatId);
-    }
-  }, [initialChatId]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeMessages, setActiveMessages] = useState<ChatMessage[]>([]);
   const [selectedChatOtherUser, setSelectedChatOtherUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [activeMessages]);
+
+  useEffect(() => {
+    if (initialChatId) {
+      setSelectedChatId(initialChatId);
+    }
+  }, [initialChatId]);
 
   // Search Users logic
   useEffect(() => {
@@ -249,46 +258,46 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
   });
 
   return (
-    <div className="flex w-full h-full md:h-screen lg:h-screen bg-surface overflow-hidden relative">
+    <div className="flex w-full h-full md:h-screen lg:h-screen bg-surface overflow-hidden relative font-headline">
       {/* Sidebar - List of Chats */}
-      <div className={`w-full md:w-[380px] lg:w-[420px] flex flex-col border-r border-outline-variant/10 bg-surface z-20 transition-all duration-300 ${selectedChatId ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-[360px] lg:w-[400px] flex flex-col border-r border-outline-variant/10 bg-surface z-20 transition-all duration-300 ${selectedChatId ? 'hidden md:flex' : 'flex'}`}>
         {/* Sidebar Header */}
-        <header className="p-4 flex flex-col gap-4 bg-surface-container-low/30 backdrop-blur-md">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-headline font-black tracking-tighter text-on-surface">MESSAGES</h1>
-            <div className="flex gap-2">
-              <button className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors">
+        <header className="px-4 py-4 flex flex-col gap-4 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
+          <div className="flex justify-between items-center px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-6 bg-primary-container rounded-full"></div>
+              <h1 className="text-2xl font-black tracking-tighter text-on-surface">TERMINAL</h1>
+            </div>
+            <div className="flex gap-1">
+              <button className="p-2 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-95">
                 <UsersIcon className="w-5 h-5" />
               </button>
-              <button className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors">
+              <button className="p-2 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-95">
                 <Plus className="w-5 h-5" />
-              </button>
-              <button className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors">
-                <MoreVertical className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline group-focus-within:text-primary-container transition-colors" />
+          <div className="relative group px-1">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-outline group-focus-within:text-primary-container transition-all duration-300" />
             <input 
               type="text" 
-              placeholder="Search conversations..."
+              placeholder="Filter channels..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface-container-low border border-outline-variant/10 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-container/30 transition-all font-sans"
+              className="w-full bg-surface-container/40 border border-outline-variant/10 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-primary-container/30 focus:bg-surface-container-low transition-all font-body placeholder:text-outline/40"
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto pb-1 px-1 no-scrollbar">
             {(['All', 'Unread', 'Groups'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] whitespace-nowrap transition-all duration-300 ${
                   activeTab === tab 
-                    ? 'bg-primary-container text-on-primary-fixed shadow-lg shadow-primary-container/20' 
-                    : 'bg-surface-container text-outline hover:text-on-surface'
+                    ? 'bg-primary-container text-on-primary shadow-[0_8px_20px_rgba(0,255,171,0.15)] scale-105' 
+                    : 'text-outline hover:text-on-surface hover:bg-surface-container'
                 }`}
               >
                 {tab}
@@ -298,7 +307,7 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
         </header>
 
         {/* Chat List */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-2 py-4 custom-scrollbar">
           {isLoading ? (
             <div className="flex flex-col gap-4 p-4 mt-10">
               {[1, 2, 3, 4, 5].map(i => (
@@ -341,25 +350,30 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                 <div 
                   key={chat.id}
                   onClick={() => setSelectedChatId(chat.id)}
-                  className={`p-4 flex items-center gap-4 cursor-pointer transition-all border-b border-outline-variant/5 relative group ${selectedChatId === chat.id ? 'bg-surface-container-high' : 'hover:bg-surface-container-low'}`}
+                  className={`mx-2 mb-1 p-3 flex items-center gap-4 cursor-pointer transition-all duration-200 rounded-2xl border border-transparent relative group ${selectedChatId === chat.id ? 'bg-surface-container-high border-outline-variant/20 shadow-sm' : 'hover:bg-surface-container-low hover:border-outline-variant/10'}`}
                 >
                   <div className="relative shrink-0">
-                    <div className="relative w-12 h-12">
-                      <img src={chat.avatar} className="w-full h-full rounded-2xl object-cover border border-outline-variant/10 shadow-sm" />
+                    <div className="relative w-14 h-14">
+                      <img src={chat.avatar} className="w-full h-full rounded-2xl object-cover border border-outline-variant/10 shadow-md group-hover:scale-105 transition-transform duration-300" />
+                      {chat.unreadCount > 0 && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary-container text-on-primary text-[10px] font-black flex items-center justify-center rounded-lg shadow-lg">
+                          {chat.unreadCount}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-0.5">
+                    <div className="flex justify-between items-center mb-1">
                       <h3 className={`text-sm font-black tracking-tight truncate ${selectedChatId === chat.id ? 'text-primary-container' : 'text-on-surface'}`}>
                         {chat.name}
                       </h3>
-                      <span className={`text-[9px] font-bold ${chat.unreadCount > 0 ? 'text-primary-container' : 'text-outline'} uppercase`}>
+                      <span className={`text-[9px] font-black tracking-widest ${chat.unreadCount > 0 ? 'text-primary-container' : 'text-outline/40'} uppercase`}>
                         {chat.time}
                       </span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
-                      <p className={`text-xs truncate font-medium ${chat.unreadCount > 0 ? 'text-on-surface font-black' : 'text-outline/70'}`}>
+                      <p className={`text-xs truncate font-medium leading-relaxed ${chat.unreadCount > 0 ? 'text-on-surface font-black' : 'text-outline/60'}`}>
                         {chat.lastMessage}
                       </p>
                     </div>
@@ -401,78 +415,96 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
               key={selectedChatId}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="flex-1 flex flex-col h-full overflow-hidden"
             >
               {/* Chat Header */}
-              <header className="p-4 flex items-center justify-between border-b border-outline-variant/10 bg-surface-container-low/30 backdrop-blur-md z-10">
+              <header className="px-4 py-3 flex items-center justify-between border-b border-outline-variant/10 bg-surface/80 backdrop-blur-xl z-10 shrink-0 mb-[-3px] pb-[10px]">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setSelectedChatId(null)} className="md:hidden p-2 -ml-2 hover:bg-surface-container rounded-full text-secondary">
-                    <ChevronLeft className="w-6 h-6" />
+                  <button onClick={() => setSelectedChatId(null)} className="md:hidden p-1 -ml-1.5 hover:bg-surface-container rounded-lg text-outline transition-all">
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <div className="relative w-10 h-10">
-                    <img src={selectedChatOtherUser?.profileImage || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'} className="w-full h-full rounded-xl object-cover border border-outline-variant/10 shadow-sm" />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary-container border-2 border-surface rounded-full shadow-sm"></div>
+                  <div className="relative group cursor-pointer" onClick={onNavigateToProfile}>
+                    <div className="w-9 h-9 rounded-xl overflow-hidden border border-outline-variant/20 shadow-md transform group-hover:scale-105 transition-all duration-300">
+                      <img src={selectedChatOtherUser?.profileImage || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary-container border-[2px] border-surface rounded-full shadow-lg"></div>
                   </div>
                   <div>
-                    <h2 className="text-sm font-black tracking-tight text-on-surface">{selectedChatOtherUser?.username || 'Gigs Operative'}</h2>
-                    <p className="text-[10px] text-primary-container font-black uppercase tracking-widest">ENCRYPTED LINK ACTIVE</p>
+                    <h2 className="text-sm font-black tracking-tight text-on-surface leading-tight hover:text-primary-container cursor-pointer transition-colors" onClick={onNavigateToProfile}>
+                      {selectedChatOtherUser?.username || 'Gigs Operative'}
+                    </h2>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,171,0.5)]"></div>
+                      <p className="text-[8px] text-primary-container font-black uppercase tracking-[0.1em]">Signal Active</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors"><Video className="w-4 h-4" /></button>
-                  <button className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors"><Phone className="w-4 h-4" /></button>
-                  <button className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors"><MoreVertical className="w-4 h-4" /></button>
+                <div className="flex items-center gap-1">
+                  <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><Video className="w-4.5 h-4.5" /></button>
+                  <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><Phone className="w-4.5 h-4.5" /></button>
+                  <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><MoreHorizontal className="w-4.5 h-4.5" /></button>
                 </div>
               </header>
 
               {/* Chat Messages */}
               <div 
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto p-4 md:p-6 space-y-2 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed"
-                style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+                className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 custom-scrollbar bg-surface/30 relative"
               >
-                <div className="flex justify-center mb-8">
-                  <span className="px-4 py-1.5 rounded-full bg-surface-container-high/50 text-outline text-[9px] font-black uppercase tracking-[0.2em] border border-outline-variant/10 backdrop-blur-sm shadow-sm">
-                    SECURE CHANNEL ESTABLISHED
-                  </span>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,255,171,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(0,255,171,0.02),transparent_40%)] pointer-events-none"></div>
+                
+                <div className="flex justify-center mb-10">
+                  <div className="flex items-center gap-3 px-6 py-2 rounded-2xl bg-surface-container/30 border border-outline-variant/10 backdrop-blur-md shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary-container opacity-60" />
+                    <span className="text-secondary text-[9px] font-black uppercase tracking-[0.2em]">
+                      End-to-End Encryption Protocol Engaged
+                    </span>
+                  </div>
                 </div>
 
                 <AnimatePresence initial={false}>
-                  {activeMessages.map((msg) => {
+                  {activeMessages.map((msg, idx) => {
                     const isMe = msg.senderId === currentUser?.id;
+                    const prevMsg = activeMessages[idx - 1];
+                    const isSameUserAsPrev = prevMsg?.senderId === msg.senderId;
+
                     return (
                       <motion.div 
                         key={msg.id}
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-1`}
+                        className={`flex ${isMe ? 'justify-end' : 'justify-start'} ${isSameUserAsPrev ? 'mt-1' : 'mt-6'}`}
                       >
-                        <div className={`relative max-w-[85%] md:max-w-[70%] px-4 py-2 shadow-sm ${
-                          isMe 
-                            ? 'bg-primary-container text-on-primary-fixed rounded-2xl rounded-tr-none' 
-                            : 'bg-surface-container-high text-on-surface rounded-2xl rounded-tl-none'
-                        }`}>
-                          <p className="text-xs md:text-sm leading-relaxed font-medium">{msg.text}</p>
-                          <div className={`flex items-center justify-end gap-1.5 mt-1 opacity-70`}>
-                            <span className="text-[9px] font-bold tracking-tighter">{msg.timestamp}</span>
-                            {isMe && <CheckCheck className="w-3 h-3 text-blue-400" />}
+                        <div className={`relative max-w-[80%] md:max-w-[65%] group`}>
+                          <div className={`px-5 py-3 shadow-md transition-all duration-300 ${
+                            isMe 
+                              ? 'bg-primary-container text-on-primary rounded-[24px_24px_4px_24px] shadow-primary-container/10' 
+                              : 'bg-surface-container border border-outline-variant/10 text-on-surface rounded-[24px_24px_24px_4px]'
+                          }`}>
+                            <p className="text-sm md:text-base leading-relaxed font-medium selection:bg-surface selection:text-primary-container">{msg.text}</p>
+                            <div className={`flex items-center justify-end gap-2 mt-2 transition-opacity duration-300 ${isSameUserAsPrev ? 'opacity-0 group-hover:opacity-100' : 'opacity-60'}`}>
+                              <span className="text-[9px] font-black tracking-widest uppercase">{msg.timestamp}</span>
+                              {isMe && <CheckCheck className="w-3.5 h-3.5 text-primary-container" />}
+                            </div>
                           </div>
                         </div>
                       </motion.div>
                     );
                   })}
                 </AnimatePresence>
+                <div ref={messagesEndRef} className="h-4" />
               </div>
 
               {/* Message Input Area */}
-              <div className="p-4 bg-surface-container-low/30 backdrop-blur-md border-t border-outline-variant/10">
-                <form onSubmit={handleSendMessage} className="flex items-end gap-3 max-w-5xl mx-auto">
-                  <div className="flex gap-1 mb-2">
-                    <button type="button" className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors"><Smile className="w-5 h-5" /></button>
-                    <button type="button" className="p-2 hover:bg-surface-container rounded-full text-secondary transition-colors"><Paperclip className="w-5 h-5" /></button>
-                  </div>
-                  
-                  <div className="flex-1 relative">
+              <div className="px-3 py-3 md:px-6 md:py-6 bg-surface border-t border-outline-variant/10 h-[85.6914px] w-[376.891px] mb-0 pb-[8px]">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-3 max-w-6xl mx-auto">
+                  {/* The Capsule */}
+                  <div className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-[28px] px-2 py-1 shadow-inner group-focus-within:border-primary-container/30 transition-all duration-300 w-[356.922px]">
+                    <button type="button" className="p-2.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-all active:scale-90">
+                      <Smile className="w-6 h-6" />
+                    </button>
+                    
                     <textarea 
                       rows={1}
                       value={newMessage}
@@ -483,24 +515,40 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                           handleSendMessage(e);
                         }
                       }}
-                      placeholder="Transmission protocol initialized..."
-                      className="w-full bg-surface-container-high border border-outline-variant/10 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/20 transition-all font-sans resize-none custom-scrollbar"
+                      placeholder="Message"
+                      className="flex-1 bg-transparent border-none px-3 py-3 text-base focus:outline-none transition-all font-body resize-none custom-scrollbar placeholder:text-outline/50"
                       style={{ minHeight: '48px', maxHeight: '150px' }}
                     />
+
+                    <div className="flex items-center gap-0.5 pr-1">
+                      <button type="button" className="p-2.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-all active:scale-90">
+                        <Paperclip className="w-5 h-5 -rotate-45" />
+                      </button>
+                      {!newMessage.trim() && (
+                        <button type="button" className="p-2.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-all active:scale-90">
+                          <Camera className="w-5 h-5 transition-all" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="mb-1">
+                  {/* Send/Mic Circular Button */}
+                  <div className="shrink-0">
                     {newMessage.trim() ? (
                       <motion.button 
-                        initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        initial={{ scale: 0.8, opacity: 0 }} 
+                        animate={{ scale: 1, opacity: 1 }}
                         type="submit" 
-                        className="w-12 h-12 bg-primary-container text-on-primary-fixed rounded-2xl flex items-center justify-center shadow-lg shadow-primary-container/30 hover:brightness-110 active:scale-90 transition-all"
+                        className="w-[52px] h-[52px] bg-primary-container text-on-primary rounded-full flex items-center justify-center shadow-lg hover:shadow-primary-container/20 hover:brightness-105 active:scale-90 transition-all duration-200"
                       >
-                        <Send className="w-5 h-5 fill-current" />
+                        <Send className="w-6 h-6 fill-current ml-0.5" />
                       </motion.button>
                     ) : (
-                      <button type="button" className="w-12 h-12 bg-surface-container-high text-outline rounded-2xl flex items-center justify-center hover:text-on-surface transition-colors">
-                        <Mic className="w-5 h-5" />
+                      <button 
+                        type="button"
+                        className="w-[52px] h-[52px] bg-primary-container text-on-primary rounded-full flex items-center justify-center shadow-lg hover:shadow-primary-container/20 hover:brightness-105 active:scale-90 transition-all duration-200"
+                      >
+                        <Mic className="w-6 h-6" />
                       </button>
                     )}
                   </div>

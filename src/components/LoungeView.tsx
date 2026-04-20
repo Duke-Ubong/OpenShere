@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, User, Settings, LogOut, Search, MoreVertical, Paperclip, AtSign, Smile, Send, ChevronLeft, ChevronRight, CheckCircle, Fingerprint, Activity, Lock, Users, Sliders, AlertTriangle, RefreshCw, Edit2, List, Download } from 'lucide-react';
+import { Shield, User, Settings, LogOut, Search, MoreVertical, Paperclip, AtSign, Smile, Send, ChevronLeft, ChevronRight, CheckCircle, Fingerprint, Activity, Lock, Users, Sliders, AlertTriangle, RefreshCw, Edit2, List, Download, Camera, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import CreateLoungeModal from './CreateLoungeModal';
@@ -644,44 +644,61 @@ const DashboardView = ({ lounge, user, onBack }: { lounge: any, user: any, onBac
             </div>
           )}
           
-          <div className="flex items-end gap-2 max-w-5xl mx-auto">
-            <button onClick={() => toast('Emoji picker coming soon')} className="p-3 text-outline hover:text-lounge-gold transition-colors rounded-full hover:bg-on-surface/5 shrink-0">
-              <Smile className="w-6 h-6" />
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              className="hidden" 
-            />
-            <button onClick={() => fileInputRef.current?.click()} className="p-3 text-outline hover:text-lounge-gold transition-colors rounded-full hover:bg-on-surface/5 shrink-0">
-              <Paperclip className="w-6 h-6" />
-            </button>
-            <div className="flex-1 bg-surface-container-high rounded-2xl border border-outline-variant focus-within:border-lounge-gold/50 transition-colors flex items-center min-h-[44px]">
+          <div className="flex items-center gap-2 max-w-5xl mx-auto">
+            {/* The Capsule */}
+            <div className="flex-1 flex items-center bg-surface-container-high border border-lounge-gold/20 rounded-full px-2 py-0.5 shadow-inner transition-all duration-300">
+              <button onClick={() => toast('Emoji picker coming soon')} className="p-2.5 text-outline hover:text-lounge-gold transition-colors rounded-full hover:bg-lounge-gold/5">
+                <Smile className="w-6 h-6" />
+              </button>
+              
               <textarea 
                 value={input}
                 onChange={handleTyping}
                 onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Type a message"
-                className="w-full bg-transparent text-on-surface text-sm px-4 py-3 focus:outline-none resize-none max-h-32"
+                className="flex-1 bg-transparent text-on-surface text-sm px-3 py-3 focus:outline-none resize-none max-h-32 placeholder:text-outline/40"
                 rows={1}
                 disabled={connectionStatus !== 'connected'}
                 style={{ height: 'auto' }}
               />
+
+              <div className="flex items-center gap-0.5 pr-1">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  className="hidden" 
+                />
+                <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-outline hover:text-lounge-gold transition-colors rounded-full hover:bg-lounge-gold/5">
+                  <Paperclip className="w-6 h-6 -rotate-45" />
+                </button>
+                {!input.trim() && (
+                  <button onClick={() => toast('Camera coming soon')} className="p-2.5 text-outline hover:text-lounge-gold transition-colors rounded-full hover:bg-lounge-gold/5">
+                    <Camera className="w-6 h-6" />
+                  </button>
+                )}
+              </div>
             </div>
-            {input.trim() ? (
-              <button 
-                onClick={handleSend}
-                disabled={connectionStatus !== 'connected'}
-                className="p-3 bg-lounge-gold text-on-primary-fixed rounded-full hover:bg-lounge-gold/90 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="w-5 h-5 ml-1" />
-              </button>
-            ) : (
-              <button onClick={() => toast('Voice messages coming soon')} className="p-3 text-outline hover:text-lounge-gold transition-colors rounded-full hover:bg-on-surface/5 shrink-0">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
-              </button>
-            )}
+
+            {/* Circular Button */}
+            <div className="shrink-0">
+              {input.trim() ? (
+                <button 
+                  onClick={handleSend}
+                  disabled={connectionStatus !== 'connected'}
+                  className="w-[52px] h-[52px] bg-lounge-gold text-white rounded-full flex items-center justify-center shadow-lg hover:bg-lounge-gold/90 transition-all duration-200 disabled:opacity-50 active:scale-95"
+                >
+                  <Send className="w-5 h-5 ml-1 fill-current" />
+                </button>
+              ) : (
+                <button 
+                  onClick={() => toast('Voice messages coming soon')} 
+                  className="w-[52px] h-[52px] bg-lounge-gold text-white rounded-full flex items-center justify-center shadow-lg hover:bg-lounge-gold/90 transition-all duration-200 active:scale-95"
+                >
+                  <Mic className="w-6 h-6" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

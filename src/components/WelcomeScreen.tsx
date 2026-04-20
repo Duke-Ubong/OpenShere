@@ -51,7 +51,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitialize }) => {
           professional_bio: 'New to OpenSphere',
           is_verified: false,
           nodes: 0,
-          trust_score: 50,
           following: [],
           credentials: [],
           documents: []

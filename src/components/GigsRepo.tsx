@@ -384,62 +384,14 @@ export default function GigsRepo() {
               </div>
             </div>
 
-            {/* Content & Trust Split */}
-            <div className="flex flex-col lg:flex-row gap-12">
+            {/* Content Section */}
+            <div className="flex flex-col gap-12">
               <div className="flex-1">
                 <h3 className={`text-xs font-bold tracking-widest uppercase mb-6 ${isImmersive ? 'text-[#00FFAB] drop-shadow-[0_0_5px_rgba(0,255,171,0.5)]' : 'text-[#00FFAB]'}`}>SUMMARY</h3>
                 <div className="text-gray-300 text-sm leading-relaxed space-y-4">
                   {selectedDoc.summary.split('\n\n').map((paragraph, idx) => (
                     <p key={idx}>{paragraph}</p>
                   ))}
-                </div>
-              </div>
-
-              {/* Trust Verification Panel */}
-              <div className={`w-full lg:w-72 border rounded-xl p-6 relative overflow-hidden transition-all ${isImmersive ? 'bg-[#0D1A12] border-[#00FFAB]/30 shadow-[0_0_30px_rgba(0,255,171,0.1)]' : 'bg-[#131614] border-[#00FFAB]/20'}`}>
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <ShieldCheck className="w-24 h-24 text-[#00FFAB]" />
-                </div>
-                
-                <h3 className={`text-xs font-bold tracking-widest uppercase mb-8 relative z-10 ${isImmersive ? 'text-[#00FFAB] drop-shadow-[0_0_5px_rgba(0,255,171,0.5)]' : 'text-[#00FFAB]'}`}>
-                  TRUST VERIFICATION
-                </h3>
-
-                <div className="space-y-8 relative z-10">
-                  <div className="flex gap-4">
-                    <div className="mt-1">
-                      <CheckCircle2 className="w-5 h-5 text-[#00FFAB]" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white mb-1">IDENTITY CONFIRMED</p>
-                      <p className="text-[10px] text-gray-500 font-mono">{selectedDoc.trust.identity}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="mt-1">
-                      <Layers className="w-5 h-5 text-[#00FFAB]" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white mb-1">CHAIN LOGGED</p>
-                      <p className="text-[10px] text-gray-500 font-mono">{selectedDoc.trust.chain}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="mt-1">
-                      <ShieldCheck className="w-5 h-5 text-[#00FFAB]" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white mb-1">OFFICIAL REGISTRY</p>
-                      <p className="text-[10px] text-gray-500 font-mono">{selectedDoc.trust.registry}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-10 pt-6 border-t border-white/5 flex justify-between items-center relative z-10">
-                  <span className="text-[8px] text-gray-500 tracking-widest uppercase">AUTHENTICITY</span>
-                  <span className="text-[10px] text-[#00FFAB] font-mono">100.0%</span>
                 </div>
               </div>
             </div>

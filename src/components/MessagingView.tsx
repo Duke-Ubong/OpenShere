@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { toast } from 'sonner';
+import { CallSignals } from './CallManager';
 
 interface ChatMessage {
   id: string;
@@ -441,8 +442,14 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><Video className="w-4.5 h-4.5" /></button>
-                  <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><Phone className="w-4.5 h-4.5" /></button>
+                  <button 
+                    onClick={() => CallSignals.triggerCall(selectedChatOtherUser?.id, 'video')} 
+                    className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"
+                  ><Video className="w-4.5 h-4.5" /></button>
+                  <button 
+                    onClick={() => CallSignals.triggerCall(selectedChatOtherUser?.id, 'audio')} 
+                    className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"
+                  ><Phone className="w-4.5 h-4.5" /></button>
                   <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><MoreHorizontal className="w-4.5 h-4.5" /></button>
                 </div>
               </header>

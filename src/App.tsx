@@ -6,6 +6,8 @@ import LoungeView from './components/LoungeView';
 import CreateBountyModal from './components/CreateBountyModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import DirectMessages from './components/DirectMessages';
+import ArchiveSidebar from './components/ArchiveSidebar';
+import { CallManager } from './components/CallManager';
 import SearchView from './components/SearchView';
 import NetworkView from './components/NetworkView';
 import ActivityView from './components/ActivityView';
@@ -280,6 +282,15 @@ const PostCard: React.FC<{
                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`}/>
               </div>
               {likesCount}
+            </span>
+            <span 
+              onClick={() => !isMe && post.authorId && onStartDM(post.authorId)}
+              className={`flex items-center gap-1.5 cursor-pointer transition-all active:scale-90 group ${!isMe ? 'hover:text-primary-container' : 'opacity-30 cursor-not-allowed'}`}
+              title={isMe ? "You cannot transmit to yourself" : "Direct Transmission"}
+            >
+              <div className="p-1.5 rounded-full group-hover:bg-primary-container/10 transition-colors">
+                <Send className="w-4 h-4"/>
+              </div>
             </span>
             <span className="flex items-center gap-1.5 group cursor-default transition-colors hover:text-primary-container">
               <div className="p-1.5 rounded-full group-hover:bg-primary-container/10 transition-colors">
@@ -820,6 +831,8 @@ export default function App() {
           transition={{ duration: 1, delay: 0.2 }} 
           className={`min-h-screen max-w-[100vw] overflow-x-hidden bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed flex flex-col ${currentView === 'messaging' ? 'h-screen h-[100dvh] overflow-hidden' : ''}`}
         >
+          <CallManager currentUser={user} allUsers={allUsers} />
+
           {/* TopNavBar - Smart Hide on Scroll */}
       {currentView !== 'messaging' && (
       <motion.nav 
@@ -842,6 +855,14 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4 relative">
           <div className="flex items-center gap-4 text-on-surface">
+            <button 
+              onClick={() => setIsDMOpen(!isDMOpen)} 
+              className={`p-1.5 hover:text-primary-container transition-colors rounded-full hover:bg-surface-container-high focus:outline-none relative ${isDMOpen ? 'text-primary-container' : ''}`}
+              title="Recent Conversations"
+            >
+              <Mail className="w-5 h-5" />
+              {conversations.length > 0 && <span className="absolute top-0 right-0 w-2 h-2 bg-primary-container rounded-full ring-2 ring-surface"></span>}
+            </button>
             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-1 hover:text-primary-container transition-colors rounded-full hover:bg-surface-container-high focus:outline-none">
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -1021,10 +1042,10 @@ export default function App() {
         >
           <AnimatePresence mode="wait">
           {currentView === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 xl:grid-cols-2 min-h-[calc(100vh-60px)]">
+            <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 xl:grid-cols-[1fr_1fr_320px] min-h-[calc(100vh-60px)]">
               
               {/* Left Column: The Vibe (Raw Feed) */}
-            <section onScroll={handleScroll} className="hidden xl:block border-r border-outline-variant/10 bg-surface-container-low p-4 lg:p-6 overflow-y-auto">
+            <section onScroll={handleScroll} className="hidden xl:block border-r border-outline-variant/10 bg-surface-container-low p-4 lg:p-6 overflow-y-auto custom-scrollbar">
               <header className="mb-6 flex justify-between items-end">
                 <div>
                   <h2 className="font-headline text-2xl font-black text-primary tracking-tighter">VIBES</h2>
@@ -1070,7 +1091,7 @@ export default function App() {
             </section>
 
             {/* Right Column: The Vault (Deep Dives) */}
-            <section onScroll={handleScroll} className="hidden xl:block bg-surface p-4 lg:p-6 overflow-y-auto pb-32">
+            <section onScroll={handleScroll} className="hidden xl:block bg-surface p-4 lg:p-6 overflow-y-auto pb-32 custom-scrollbar border-r border-outline-variant/10">
               <header className="mb-6 flex justify-between items-end">
                 <div>
                   <h2 className="font-headline text-2xl font-black text-primary tracking-tighter">GIGS</h2>
@@ -1097,6 +1118,19 @@ export default function App() {
                 </AnimatePresence>
               </div>
             </section>
+
+            {/* Messaging Sidebar on Home Feed */}
+            <aside className="hidden xl:block bg-surface-container-low/30 overflow-hidden">
+               <ArchiveSidebar 
+                  conversations={conversations} 
+                  currentUserId={user?.id || ''} 
+                  onConversationClick={(id) => {
+                    setActiveConversationId(id);
+                    setIsDMOpen(true);
+                  }}
+                  activeConversationId={activeConversationId}
+               />
+            </aside>
 
             {/* Mobile Unified Feed */}
             <section className="xl:hidden bg-surface p-4 pb-[100px] overflow-y-auto w-full">
@@ -1164,6 +1198,7 @@ export default function App() {
               <NetworkView 
                 currentUser={user} 
                 onNavigateToProfile={() => setCurrentView('profile')}
+                onStartDM={handleStartDM}
               />
             </motion.div>
           )}

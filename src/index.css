@@ -80,6 +80,13 @@
   .mint-glow-active {
     box-shadow: 0 0 15px rgba(0, 255, 171, 0.2);
   }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 body, html {

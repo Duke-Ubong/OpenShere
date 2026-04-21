@@ -1,5 +1,5 @@
 {
   "name": "OpenSphere Gigs",
   "description": "A high-velocity professional matchmaking and dual-identity feed for the kinetic elite.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera", "microphone"]
 }

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 interface NetworkViewProps {
   currentUser: any;
   onNavigateToProfile: () => void;
+  onStartDM: (otherUserId: string) => void;
 }
 
 interface Node extends d3.SimulationNodeDatum {
@@ -359,7 +360,7 @@ const WhatsAppStyleGroups: React.FC = () => {
 };
 
 
-const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProfile }) => {
+const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProfile, onStartDM }) => {
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const [invites, setInvites] = useState([
     {
@@ -588,25 +589,34 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
                 </div>
                 <h3 className="font-black text-xl mb-1">{person.name}</h3>
                 <p className="text-xs text-outline font-medium mb-8 leading-relaxed max-w-[200px] h-10">{person.role}</p>
-                <button 
-                  onClick={() => handleConnect(person.id)}
-                  disabled={connectedIds.includes(person.id)}
-                  className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
-                    connectedIds.includes(person.id)
-                      ? 'bg-[#00FFAB]/10 border border-[#00FFAB]/30 text-[#00FFAB]'
-                      : 'bg-surface-container-high border border-outline-variant/20 text-on-surface hover:bg-surface-container-highest'
-                  }`}
-                >
-                  {connectedIds.includes(person.id) ? (
-                    <>
-                      <Check className="w-4 h-4" /> Connected
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" /> Connect
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2 w-full">
+                  <button 
+                    onClick={() => handleConnect(person.id)}
+                    disabled={connectedIds.includes(person.id)}
+                    className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                      connectedIds.includes(person.id)
+                        ? 'bg-[#00FFAB]/10 border border-[#00FFAB]/30 text-[#00FFAB]'
+                        : 'bg-surface-container-high border border-outline-variant/20 text-on-surface hover:bg-surface-container-highest'
+                    }`}
+                  >
+                    {connectedIds.includes(person.id) ? (
+                      <>
+                        <Check className="w-4 h-4" /> Connected
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" /> Connect
+                      </>
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => onStartDM(person.id)}
+                    className="p-4 bg-surface-container-high border border-outline-variant/20 rounded-2xl text-on-surface hover:bg-surface-container-highest transition-all active:scale-[0.98]"
+                    title="Send Message"
+                  >
+                    <Mail className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

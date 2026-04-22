@@ -59,6 +59,10 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
   const [isLoading, setIsLoading] = useState(true);
   const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [otherUserTyping, setOtherUserTyping] = useState<boolean>(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -157,9 +161,11 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
 
   // Fetch Messages for active chat
   useEffect(() => {
+    setActiveMessages([]);
+    setSelectedChatOtherUser(null);
+    setOtherUserTyping(false);
+
     if (!selectedChatId) {
-      setActiveMessages([]);
-      setSelectedChatOtherUser(null);
       return;
     }
 
@@ -196,19 +202,94 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
     return () => unsubscribe();
   }, [selectedChatId, chats, currentUser?.id]);
 
-  // Scroll to bottom on new message
+  const otherTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // WebSocket for typing indicator
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!currentUser?.id) return;
+
+    let ws: WebSocket;
+    let reconnectTimer: NodeJS.Timeout;
+
+    const connect = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws-messaging?userId=${currentUser.id}&username=${encodeURIComponent(currentUser.username)}`;
+      
+      ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'private-typing') {
+            const isFromActiveOtherUser = selectedChatOtherUser && data.from === selectedChatOtherUser.id;
+            const isParticipatingInActiveChat = selectedChatId && chats.find(c => c.id === selectedChatId)?.participants.includes(data.from);
+
+            if (isFromActiveOtherUser || isParticipatingInActiveChat) {
+              setOtherUserTyping(data.isTyping);
+              
+              if (data.isTyping) {
+                if (otherTypingTimeoutRef.current) clearTimeout(otherTypingTimeoutRef.current);
+                otherTypingTimeoutRef.current = setTimeout(() => {
+                  setOtherUserTyping(false);
+                }, 5000);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Failed to parse WS message', err);
+        }
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      if (ws) ws.close();
+    };
+  }, [currentUser?.id, selectedChatOtherUser, selectedChatId, chats]);
+
+  const sendTypingStatus = (typing: boolean) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && selectedChatOtherUser?.id) {
+      wsRef.current.send(JSON.stringify({
+        type: 'private-typing',
+        to: selectedChatOtherUser.id,
+        isTyping: typing
+      }));
     }
-  }, [activeMessages]);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewMessage(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      sendTypingStatus(true);
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      sendTypingStatus(false);
+    }, 2000);
+  };
 
   const handleSendMessage = async (e: React.FormEvent, customText?: string) => {
     e.preventDefault();
     const messageText = customText || newMessage.trim();
     if (!messageText || !selectedChatId || !currentUser?.id) return;
 
-    if (!customText) setNewMessage('');
+    if (!customText) {
+      setNewMessage('');
+      setIsTyping(false);
+      sendTypingStatus(false);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    }
 
     try {
       const messageRef = collection(db, 'conversations', selectedChatId, 'messages');
@@ -451,28 +532,41 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
               className="flex-1 flex flex-col h-full overflow-hidden"
             >
               {/* Chat Header */}
-              <header className="px-4 py-3 flex items-center justify-between border-b border-outline-variant/10 bg-surface/80 backdrop-blur-xl z-10 shrink-0 mb-[-3px] pb-[10px]">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setSelectedChatId(null)} className="md:hidden p-1 -ml-1.5 hover:bg-surface-container rounded-lg text-outline transition-all">
+              <header className="px-4 py-3 flex items-center justify-between border-b border-outline-variant/10 bg-surface/80 backdrop-blur-xl z-10 shrink-0 mb-[-3px] pb-[10px] gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => setSelectedChatId(null)} className="md:hidden p-1 -ml-1.5 hover:bg-surface-container rounded-lg text-outline transition-all shrink-0">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <div className="relative group cursor-pointer" onClick={() => onNavigateToProfile(selectedChatOtherUser)}>
+                  <div className="relative group cursor-pointer shrink-0" onClick={() => onNavigateToProfile(selectedChatOtherUser)}>
                     <div className="w-9 h-9 rounded-xl overflow-hidden border border-outline-variant/20 shadow-md transform group-hover:scale-105 transition-all duration-300">
                       <img src={selectedChatOtherUser?.profileImage || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary-container border-[2px] border-surface rounded-full shadow-lg"></div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-black tracking-tight text-on-surface leading-tight hover:text-primary-container cursor-pointer transition-colors" onClick={() => onNavigateToProfile(selectedChatOtherUser)}>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-black tracking-tight text-on-surface leading-tight hover:text-primary-container cursor-pointer transition-colors truncate" onClick={() => onNavigateToProfile(selectedChatOtherUser)}>
                       {selectedChatOtherUser?.username || 'Gigs Operative'}
                     </h2>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,171,0.5)]"></div>
-                      <p className="text-[8px] text-primary-container font-black uppercase tracking-[0.1em]">Signal Active</p>
+                    <div className="flex items-center gap-1.5 h-3">
+                      {otherUserTyping ? (
+                        <div className="flex items-center gap-1 truncate">
+                          <span className="flex gap-0.5 shrink-0">
+                            <span className="w-1 h-1 bg-primary-container rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1 h-1 bg-primary-container rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1 h-1 bg-primary-container rounded-full animate-bounce"></span>
+                          </span>
+                          <p className="text-[8px] text-primary-container font-black uppercase tracking-[0.1em] truncate">Typing...</p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 truncate">
+                          <div className="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,171,0.5)] shrink-0"></div>
+                          <p className="text-[8px] text-primary-container font-black uppercase tracking-[0.1em] truncate">Signal Active</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <button 
                     onClick={() => {
                       if (selectedChatOtherUser?.id) {
@@ -534,7 +628,7 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                               ? 'bg-primary-container text-on-primary rounded-[24px_24px_4px_24px] shadow-primary-container/10' 
                               : 'bg-surface-container border border-outline-variant/10 text-on-surface rounded-[24px_24px_24px_4px]'
                           }`}>
-                            <p className="text-sm md:text-base leading-relaxed font-medium selection:bg-surface selection:text-primary-container">{msg.text}</p>
+                            <p className="text-sm md:text-base leading-relaxed font-medium selection:bg-surface selection:text-primary-container break-words">{msg.text}</p>
                             <div className={`flex items-center justify-end gap-2 mt-2 transition-opacity duration-300 ${isSameUserAsPrev ? 'opacity-0 group-hover:opacity-100' : 'opacity-60'}`}>
                               <span className="text-[9px] font-black tracking-widest uppercase">{msg.timestamp}</span>
                               {isMe && <CheckCheck className="w-3.5 h-3.5 text-primary-container" />}
@@ -549,34 +643,24 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
               </div>
 
               {/* Message Input Area */}
-              <div className="px-3 py-3 md:px-6 md:py-6 bg-surface border-t border-outline-variant/10 h-[85.6914px] w-[376.891px] mb-0 pb-[8px]">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-3 max-w-6xl mx-auto" style={{ marginLeft: '-11px' }}>
+              <div className="px-3 py-3 md:px-6 md:py-6 bg-surface border-t border-outline-variant/10 w-full min-h-[80px]">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-3 max-w-6xl mx-auto w-full">
                   {/* The Capsule */}
                   <div 
-                    className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-[28px] py-1 shadow-inner group-focus-within:border-primary-container/30 transition-all duration-300"
-                    style={{ 
-                      paddingTop: '-4px', 
-                      paddingBottom: '4px', 
-                      paddingRight: '20px', 
-                      marginLeft: '12px', 
-                      marginTop: '-3px', 
-                      marginRight: '-5px', 
-                      marginBottom: '5px', 
-                      width: '100px' 
-                    }}
+                    className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-[28px] py-1 shadow-inner focus-within:border-primary-container/30 transition-all duration-300"
                   >
                     <button 
                       type="button" 
                       onClick={() => toast.success('Emoji picker activated', { duration: 1000 })}
-                      className="p-2.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-all active:scale-90 flex-shrink-0"
+                      className="p-2 md:p-2.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-all active:scale-90 flex-shrink-0"
                     >
-                      <Smile className="w-6 h-6" />
+                      <Smile className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                     
                     <textarea 
                       rows={1}
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={handleInputChange}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -584,8 +668,7 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                         }
                       }}
                       placeholder="Message"
-                      className="flex-1 bg-transparent border-none px-3 py-3 text-base focus:outline-none transition-all font-body resize-none custom-scrollbar placeholder:text-outline/50"
-                      style={{ minHeight: '48px', maxHeight: '150px' }}
+                      className="flex-1 bg-transparent border-none px-2 md:px-3 py-2 md:py-3 text-sm md:text-base focus:outline-none transition-all font-body resize-none custom-scrollbar placeholder:text-outline/50 min-h-[40px] md:min-h-[48px] max-h-[150px]"
                     />
 
                     <div className="flex items-center gap-0.5 pr-1">

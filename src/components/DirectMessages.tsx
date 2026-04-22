@@ -41,6 +41,11 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [otherUserTyping, setOtherUserTyping] = useState<boolean>(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const otherTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,11 +80,80 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
     return () => unsubscribe();
   }, [activeConversationId, conversations, currentUser?.id]);
 
+  // WebSocket for typing indicator
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!isOpen || !currentUser?.id) {
+      if (wsRef.current) wsRef.current.close();
+      return;
     }
-  }, [messages]);
+
+    let ws: WebSocket;
+    let reconnectTimer: NodeJS.Timeout;
+
+    const connect = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws-messaging?userId=${currentUser.id}&username=${encodeURIComponent(currentUser.username)}`;
+      
+      ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'private-typing') {
+            if (otherUser && data.from === otherUser.id) {
+              setOtherUserTyping(data.isTyping);
+              
+              if (data.isTyping) {
+                if (otherTypingTimeoutRef.current) clearTimeout(otherTypingTimeoutRef.current);
+                otherTypingTimeoutRef.current = setTimeout(() => {
+                  setOtherUserTyping(false);
+                }, 5000);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Failed to parse WS message', err);
+        }
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      if (ws) ws.close();
+    };
+  }, [isOpen, currentUser?.id, otherUser]);
+
+  const sendTypingStatus = (typing: boolean) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && otherUser?.id) {
+      wsRef.current.send(JSON.stringify({
+        type: 'private-typing',
+        to: otherUser.id,
+        isTyping: typing
+      }));
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      sendTypingStatus(true);
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      sendTypingStatus(false);
+    }, 2000);
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +161,9 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
 
     const text = newMessage;
     setNewMessage('');
+    setIsTyping(false);
+    sendTypingStatus(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     try {
       await addDoc(collection(db, 'conversations', activeConversationId, 'messages'), {
@@ -116,18 +193,34 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
         exit={{ opacity: 0, x: 300 }}
         className="fixed right-0 top-0 h-full w-full sm:w-[400px] bg-[#1C1B1B] border-l border-[#3A4A40]/30 z-[60] shadow-2xl flex flex-col"
       >
-        <div className="px-4 py-3 border-b border-[#3A4A40]/20 flex items-center justify-between bg-[#141414]">
-          <div className="flex items-center gap-2">
+        <div className="px-4 py-3 border-b border-[#3A4A40]/20 flex items-center justify-between bg-[#141414] gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {activeConversationId && (
-              <button onClick={() => setActiveConversationId(null)} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
+              <button onClick={() => setActiveConversationId(null)} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors shrink-0">
                 <ChevronLeft className="w-5 h-5 text-outline" />
               </button>
             )}
-            <h2 className="font-headline font-black text-primary tracking-tight text-base uppercase">
-              {activeConversationId ? (otherUser?.username || 'Signal') : 'Archives'}
+            <h2 className="font-headline font-black text-primary tracking-tight text-base uppercase flex flex-col min-w-0">
+              <span className="truncate">{activeConversationId ? (otherUser?.username || 'Signal') : 'Archives'}</span>
+              {activeConversationId && otherUser && (
+                <div className="h-4 -mt-0.5 truncate">
+                  {otherUserTyping ? (
+                    <div className="flex items-center gap-1">
+                      <span className="flex gap-0.5 shrink-0">
+                        <span className="w-0.5 h-0.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="w-0.5 h-0.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="w-0.5 h-0.5 bg-primary rounded-full animate-bounce"></span>
+                      </span>
+                      <span className="text-[7px] text-primary font-black tracking-widest lowercase opacity-70 truncate">typing...</span>
+                    </div>
+                  ) : (
+                    <span className="text-[7px] text-outline/40 font-mono tracking-widest lowercase truncate">secure link active</span>
+                  )}
+                </div>
+              )}
             </h2>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {activeConversationId && otherUser && (
               <>
                 <button 
@@ -189,7 +282,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
                         </div>
                       )
                     )}
-                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm break-words ${
                       isMe 
                         ? 'bg-primary-container text-on-primary-container rounded-tr-none' 
                         : 'bg-surface-container-highest text-on-surface rounded-tl-none'
@@ -212,7 +305,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
                 </button>
                 <input 
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   placeholder="Message"
                   className="flex-1 bg-transparent border-none px-2 py-2 text-xs focus:outline-none transition-all font-body placeholder:text-outline/40"
                 />

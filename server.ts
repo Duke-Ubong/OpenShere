@@ -473,7 +473,7 @@ async function startServer() {
   const userConnections = new Map<string, WebSocket>();
 
   server.on('upgrade', (request, socket, head) => {
-    if (request.url?.startsWith('/ws-lounge')) {
+    if (request.url?.startsWith('/ws-lounge') || request.url?.startsWith('/ws-messaging')) {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
@@ -608,6 +608,12 @@ async function startServer() {
             }
             // Also echo back to sender
             ws.send(JSON.stringify({ type: 'private-chat', message: msg }));
+          } else if (parsed.type === 'private-typing') {
+            const { to, isTyping } = parsed;
+            const targetWs = userConnections.get(to);
+            if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+              targetWs.send(JSON.stringify({ type: 'private-typing', from: userId, isTyping }));
+            }
           }
         } catch (err) {
           console.error('WebSocket message parsing error:', err);
@@ -660,6 +666,12 @@ async function startServer() {
             }
             // Also echo back to sender
             ws.send(JSON.stringify({ type: 'private-chat', message: msg }));
+          } else if (parsed.type === 'private-typing') {
+            const { to, isTyping } = parsed;
+            const targetWs = userConnections.get(to);
+            if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+              targetWs.send(JSON.stringify({ type: 'private-typing', from: userId, isTyping }));
+            }
           }
         } catch (err) {
           console.error('WebSocket private message error:', err);

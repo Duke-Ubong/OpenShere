@@ -1,14 +1,15 @@
 import React from 'react';
-import { Search, Bell, Filter, Command, TrendingUp, ChevronRight, ArrowRight, User, Users2, Building2, Zap, History, ChevronLeft } from 'lucide-react';
+import { Search, Bell, Filter, Command, TrendingUp, ChevronRight, ArrowRight, User, Users2, Building2, Zap, History, ChevronLeft, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SearchViewProps {
   currentUser: any;
   onFollowUser: (userId: string) => void;
-  onNavigateToProfile: () => void;
+  onNavigateToProfile: (user: any) => void;
+  onCreatePost?: () => void;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ currentUser, onFollowUser, onNavigateToProfile }) => {
+const SearchView: React.FC<SearchViewProps> = ({ currentUser, onFollowUser, onNavigateToProfile, onCreatePost }) => {
   const categories = ['All', 'People', 'Jobs', 'Posts'];
   const [activeCategory, setActiveCategory] = React.useState('All');
 
@@ -47,7 +48,7 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onFollowUser, onNa
       <header className="px-6 py-4 flex justify-between items-center sticky top-0 bg-surface/80 backdrop-blur-xl z-20 border-b border-outline-variant/10">
         <div className="flex items-center gap-3">
           <div 
-            onClick={onNavigateToProfile}
+            onClick={() => onNavigateToProfile(currentUser)}
             className="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-outline-variant/30 cursor-pointer"
           >
             {currentUser?.profileImage ? (
@@ -60,7 +61,16 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onFollowUser, onNa
           </div>
           <h1 className="text-xl font-bold tracking-tight">Search & Discovery</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {onCreatePost && (
+            <button 
+              onClick={onCreatePost}
+              className="p-2 hover:bg-surface-container rounded-full transition-colors text-primary-container group relative"
+              title="Create Post"
+            >
+              <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
           <button className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface">
             <Filter className="w-5 h-5" />
           </button>
@@ -154,11 +164,29 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onFollowUser, onNa
 
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-1 px-1">
             {experts.map(expert => (
-              <div key={expert.id} className="min-w-[280px] bg-surface-container border border-outline-variant/10 rounded-3xl p-6 flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-2xl overflow-hidden mb-4 border border-outline-variant/30">
+              <div key={expert.id} className="min-w-[280px] bg-surface-container border border-outline-variant/10 rounded-3xl p-6 flex flex-col items-center text-center group/expert">
+                <div 
+                  className="w-20 h-20 rounded-2xl overflow-hidden mb-4 border border-outline-variant/30 cursor-pointer group-hover/expert:scale-105 transition-transform"
+                  onClick={() => onNavigateToProfile({
+                    id: expert.id,
+                    username: expert.name,
+                    profileImage: expert.image,
+                    professional_bio: expert.role
+                  })}
+                >
                   <img src={expert.image} alt={expert.name} className="w-full h-full object-cover" />
                 </div>
-                <h3 className="font-black text-lg mb-1">{expert.name}</h3>
+                <h3 
+                  className="font-black text-lg mb-1 cursor-pointer hover:text-primary-container transition-colors"
+                  onClick={() => onNavigateToProfile({
+                    id: expert.id,
+                    username: expert.name,
+                    profileImage: expert.image,
+                    professional_bio: expert.role
+                  })}
+                >
+                  {expert.name}
+                </h3>
                 <p className="text-xs text-outline font-medium mb-1">{expert.role}</p>
                 <p className="text-[10px] font-black uppercase tracking-widest text-outline/60 mb-6">{expert.badge}</p>
                 <button 

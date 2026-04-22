@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Search, Filter, Heart, MessageSquare, Reply, ExternalLink, MoreHorizontal, UserPlus, Users, MessageCircle, Edit3 } from 'lucide-react';
+import { ChevronLeft, Search, Filter, Heart, MessageSquare, Reply, ExternalLink, MoreHorizontal, UserPlus, Users, MessageCircle, Edit3, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface ActivityViewProps {
@@ -7,9 +7,10 @@ interface ActivityViewProps {
   onNavigateToProfile: () => void;
   onNavigateToPost: (postId: string) => void;
   onNavigateToDMs: () => void;
+  onCreatePost?: () => void;
 }
 
-const ActivityView: React.FC<ActivityViewProps> = ({ onBack, onNavigateToProfile, onNavigateToPost, onNavigateToDMs }) => {
+const ActivityView: React.FC<ActivityViewProps> = ({ onBack, onNavigateToProfile, onNavigateToPost, onNavigateToDMs, onCreatePost }) => {
   return (
     <div className="flex-1 bg-surface min-h-screen pb-[100px] overflow-y-auto custom-scrollbar">
       {/* Header */}
@@ -20,7 +21,16 @@ const ActivityView: React.FC<ActivityViewProps> = ({ onBack, onNavigateToProfile
           </button>
           <h1 className="text-xl font-bold tracking-tight">Activity Hub</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {onCreatePost && (
+            <button 
+              onClick={onCreatePost}
+              className="p-2 hover:bg-surface-container rounded-full transition-colors text-primary-container"
+              title="Create Post"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
           <button className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface">
             <Search className="w-5 h-5" />
           </button>
@@ -155,7 +165,7 @@ const ActivityView: React.FC<ActivityViewProps> = ({ onBack, onNavigateToProfile
                   src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100" 
                   className="w-12 h-12 rounded-2xl object-cover border border-outline-variant/20"
                 />
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#00FFAB] border-2 border-surface rounded-full shadow-sm"></div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary-container border-2 border-surface rounded-full shadow-sm"></div>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-0.5">

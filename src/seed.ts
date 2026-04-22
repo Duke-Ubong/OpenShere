@@ -25,6 +25,7 @@ export async function seedDatabase() {
       {
         id: 'system',
       username: 'System Log',
+      handle: 'system_log',
       email: 'system@opensphere.io',
       professional_bio: 'Automated System Logs',
       is_verified: true,
@@ -36,6 +37,7 @@ export async function seedDatabase() {
     {
       id: 'user-1',
       username: 'Marcus Vane',
+      handle: 'vane_ops',
       email: 'marcus@opensphere.io',
       professional_bio: 'Principal Architect @ OpenSphere. Building the future of vibe-coded systems. Ex-Google, Ex-Meta.',
       is_verified: true,
@@ -54,6 +56,7 @@ export async function seedDatabase() {
     {
       id: 'user-2',
       username: 'Elena Thorne',
+      handle: 'thorne_dev',
       email: 'elena@opensphere.io',
       professional_bio: 'L3 Network Specialist',
       is_verified: true,
@@ -65,6 +68,7 @@ export async function seedDatabase() {
     {
       id: 'user-3',
       username: 'Sarah Koto',
+      handle: 'koto_alpha',
       email: 'sarah@opensphere.io',
       professional_bio: 'Decentralized Validator Expert',
       is_verified: true,
@@ -76,6 +80,7 @@ export async function seedDatabase() {
     {
       id: 'user-4',
       username: 'CEO Hustle',
+      handle: 'ceo_pulse',
       email: 'ceo@opensphere.io',
       professional_bio: 'Scaling is a mindset.',
       is_verified: true,

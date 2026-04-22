@@ -208,15 +208,15 @@ export default function GigsRepo() {
           <button onClick={() => setIsListVisible(!isListVisible)} className="text-gray-400 hover:text-white transition-colors">
             <Menu className="w-5 h-5" />
           </button>
-          <span className="text-xl font-black text-[#00FFAB] tracking-tighter">VAULT</span>
+          <span className="text-xl font-black text-primary-container tracking-tighter">VAULT</span>
           <div className="flex gap-6 items-center">
-            <button onClick={() => toast('Attributes tab active')} className="text-sm font-bold text-[#00FFAB] border-b-2 border-[#00FFAB] pb-1">Attributes</button>
+            <button onClick={() => toast('Attributes tab active')} className="text-sm font-bold text-primary-container border-b-2 border-primary-container pb-1">Attributes</button>
             <button onClick={() => toast('Insights coming soon')} className="text-sm font-bold text-gray-500 hover:text-white pb-1">Insights</button>
             <button onClick={() => toast('Network view coming soon')} className="text-sm font-bold text-gray-500 hover:text-white pb-1">Network</button>
             <div className="w-px h-4 bg-white/10 mx-2"></div>
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="bg-[#00FFAB] text-black px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase hover:bg-[#00CC88] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,171,0.3)]"
+              className="bg-primary-container text-black px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase hover:bg-on-primary-container transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(45,212,191,0.3)]"
             >
               <Plus className="w-3 h-3" />
               Upload New
@@ -224,7 +224,7 @@ export default function GigsRepo() {
             <div className="w-px h-4 bg-white/10 mx-2"></div>
             <button 
               onClick={() => setIsImmersive(!isImmersive)} 
-              className={`p-1.5 rounded-lg transition-colors flex items-center gap-2 ${isImmersive ? 'bg-[#00FFAB]/20 text-[#00FFAB]' : 'bg-[#1A1A1A] text-gray-400'}`}
+              className={`p-1.5 rounded-lg transition-colors flex items-center gap-2 ${isImmersive ? 'bg-primary-container/20 text-primary-container' : 'bg-[#1A1A1A] text-gray-400'}`}
               title="Toggle Immersive Mode"
             >
               <Sparkles className="w-4 h-4" />
@@ -244,7 +244,7 @@ export default function GigsRepo() {
               <select 
                 value={activeCategory}
                 onChange={(e) => setActiveCategory(e.target.value)}
-                className="w-full bg-[#1A1A1A] border border-white/10 rounded text-xs font-bold tracking-widest text-white px-4 py-3 focus:outline-none focus:border-[#00FFAB] transition-colors font-mono appearance-none cursor-pointer"
+                className="w-full bg-[#1A1A1A] border border-white/10 rounded text-xs font-bold tracking-widest text-white px-4 py-3 focus:outline-none focus:border-primary-container transition-colors font-mono appearance-none cursor-pointer"
               >
                 <option value="All">ALL CATEGORIES</option>
                 {SIDEBAR_ITEMS.map(item => (
@@ -269,7 +269,6 @@ export default function GigsRepo() {
             </div>
             <div className="flex justify-between items-center mt-6">
               <span className="text-[10px] text-gray-500 tracking-widest uppercase">{filteredDocs.length} DOCUMENTS FOUND</span>
-              <Filter className="w-4 h-4 text-gray-500 cursor-pointer hover:text-white" />
             </div>
           </div>
 
@@ -312,11 +311,11 @@ export default function GigsRepo() {
                     transition={{ duration: 0.2 }}
                     onClick={() => setSelectedDocId(doc.id)}
                     className={`p-6 border-b border-white/5 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-[#1A1A1A] border-l-4 border-l-[#00FFAB]' : 'hover:bg-[#161616] border-l-4 border-l-transparent'
+                      isSelected ? 'bg-[#1A1A1A] border-l-4 border-l-primary-container' : 'hover:bg-[#161616] border-l-4 border-l-transparent'
                     }`}
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <span className={`text-[10px] font-mono tracking-widest ${isSelected ? 'text-[#00FFAB]' : 'text-gray-400'}`}>
+                      <span className={`text-[10px] font-mono tracking-widest ${isSelected ? 'text-primary-container' : 'text-gray-400'}`}>
                         {doc.displayId}
                       </span>
                       <span className="text-[10px] text-gray-500 tracking-widest">{doc.date}</span>
@@ -346,14 +345,14 @@ export default function GigsRepo() {
       {/* Right Column: Preview */}
       <div className={`flex-1 overflow-y-auto p-10 lg:p-16 relative transition-all duration-500 ${isImmersive ? 'bg-[#0A0F0C]' : 'bg-[#0F0F0F]'}`}>
         {isImmersive && (
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#00FFAB]/40 via-transparent to-transparent pointer-events-none"></div>
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary-container/40 via-transparent to-transparent pointer-events-none"></div>
         )}
         
         {selectedDoc ? (
           <div className="max-w-4xl mx-auto relative z-10">
             {/* Header Status */}
             <div className="flex items-center gap-4 mb-12">
-              <span className={`text-[10px] font-bold tracking-widest px-3 py-1.5 rounded-sm transition-colors ${isImmersive ? 'bg-[#00FFAB]/20 text-[#00FFAB] shadow-[0_0_10px_rgba(0,255,171,0.2)]' : 'bg-[#003322] text-[#00FFAB]'}`}>
+              <span className={`text-[10px] font-bold tracking-widest px-3 py-1.5 rounded-sm transition-colors ${isImmersive ? 'bg-primary-container/20 text-primary-container shadow-[0_0_10px_rgba(45,212,191,0.2)]' : 'bg-[#003322] text-primary-container'}`}>
                 ATTRIBUTE PREVIEW_MODE
               </span>
               <span className="text-[10px] text-gray-500 tracking-widest uppercase">
@@ -364,21 +363,21 @@ export default function GigsRepo() {
             {/* Massive Title */}
             <h1 className="text-5xl lg:text-7xl font-black leading-[0.9] tracking-tighter mb-16 uppercase">
               <span className="text-white block">{selectedDoc.title1}</span>
-              <span className={`block transition-colors ${isImmersive ? 'text-[#00FFAB] drop-shadow-[0_0_15px_rgba(0,255,171,0.5)]' : 'text-[#00FFAB]'}`}>{selectedDoc.titleHighlight}</span>
+              <span className={`block transition-colors ${isImmersive ? 'text-primary-container drop-shadow-[0_0_15px_rgba(45,212,191,0.5)]' : 'text-primary-container'}`}>{selectedDoc.titleHighlight}</span>
               <span className="text-white block">{selectedDoc.title2}</span>
             </h1>
 
             {/* Metadata Cards */}
             <div className="grid grid-cols-3 gap-6 mb-16">
-              <div className={`p-6 rounded-lg border transition-all ${isImmersive ? 'bg-[#111A14] border-[#00FFAB]/20 shadow-[0_4px_20px_rgba(0,255,171,0.05)]' : 'bg-[#161616] border-white/5'}`}>
+              <div className={`p-6 rounded-lg border transition-all ${isImmersive ? 'bg-[#111A14] border-primary-container/20 shadow-[0_4px_20px_rgba(45,212,191,0.05)]' : 'bg-[#161616] border-white/5'}`}>
                 <p className="text-[10px] text-gray-500 tracking-widest uppercase mb-2">ISSUE DATE</p>
                 <p className="text-lg font-bold text-white">{selectedDoc.issueDate}</p>
               </div>
-              <div className={`p-6 rounded-lg border transition-all ${isImmersive ? 'bg-[#111A14] border-[#00FFAB]/20 shadow-[0_4px_20px_rgba(0,255,171,0.05)]' : 'bg-[#161616] border-white/5'}`}>
+              <div className={`p-6 rounded-lg border transition-all ${isImmersive ? 'bg-[#111A14] border-primary-container/20 shadow-[0_4px_20px_rgba(45,212,191,0.05)]' : 'bg-[#161616] border-white/5'}`}>
                 <p className="text-[10px] text-gray-500 tracking-widest uppercase mb-2">ISSUER</p>
                 <p className="text-lg font-bold text-white">{selectedDoc.issuer}</p>
               </div>
-              <div className={`p-6 rounded-lg border transition-all ${isImmersive ? 'bg-[#111A14] border-[#00FFAB]/20 shadow-[0_4px_20px_rgba(0,255,171,0.05)]' : 'bg-[#161616] border-white/5'}`}>
+              <div className={`p-6 rounded-lg border transition-all ${isImmersive ? 'bg-[#111A14] border-primary-container/20 shadow-[0_4px_20px_rgba(45,212,191,0.05)]' : 'bg-[#161616] border-white/5'}`}>
                 <p className="text-[10px] text-gray-500 tracking-widest uppercase mb-2">EXPIRES</p>
                 <p className="text-lg font-bold text-white">{selectedDoc.expires}</p>
               </div>
@@ -387,7 +386,7 @@ export default function GigsRepo() {
             {/* Content Section */}
             <div className="flex flex-col gap-12">
               <div className="flex-1">
-                <h3 className={`text-xs font-bold tracking-widest uppercase mb-6 ${isImmersive ? 'text-[#00FFAB] drop-shadow-[0_0_5px_rgba(0,255,171,0.5)]' : 'text-[#00FFAB]'}`}>SUMMARY</h3>
+                <h3 className={`text-xs font-bold tracking-widest uppercase mb-6 ${isImmersive ? 'text-primary-container drop-shadow-[0_0_5px_rgba(45,212,191,0.5)]' : 'text-primary-container'}`}>SUMMARY</h3>
                 <div className="text-gray-300 text-sm leading-relaxed space-y-4">
                   {selectedDoc.summary.split('\n\n').map((paragraph, idx) => (
                     <p key={idx}>{paragraph}</p>
@@ -416,13 +415,13 @@ export default function GigsRepo() {
           <div className="flex gap-2 shrink-0">
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="p-2.5 rounded-xl bg-[#00FFAB] text-black shadow-[0_0_15px_rgba(0,255,171,0.4)] active:scale-95 transition-transform"
+              className="p-2.5 rounded-xl bg-primary-container text-black shadow-[0_0_15px_rgba(45,212,191,0.4)] active:scale-95 transition-transform"
             >
               <Plus className="w-4 h-4" />
             </button>
             <button 
               onClick={() => setIsGrid(!isGrid)} 
-              className={`p-2.5 rounded-xl transition-all duration-300 relative active:scale-95 ${isGrid ? 'bg-[#00FFAB]/20 text-[#00FFAB]' : 'bg-[#1A1A1A] text-gray-400'}`}
+              className={`p-2.5 rounded-xl transition-all duration-300 relative active:scale-95 ${isGrid ? 'bg-primary-container/20 text-primary-container' : 'bg-[#1A1A1A] text-gray-400'}`}
             >
               <AnimatePresence mode="wait">
                 {isGrid ? (
@@ -456,7 +455,7 @@ export default function GigsRepo() {
           onClick={() => setActiveCategory('All')}
           className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all ${
             activeCategory === 'All' 
-              ? (isImmersive ? 'bg-[#00FFAB] text-black shadow-[0_0_10px_rgba(0,255,171,0.3)]' : 'bg-white text-black') 
+              ? (isImmersive ? 'bg-primary-container text-black shadow-[0_0_10px_rgba(45,212,191,0.3)]' : 'bg-white text-black') 
               : 'bg-[#1A1A1A] text-gray-400 border border-white/5'
           }`}
         >
@@ -468,7 +467,7 @@ export default function GigsRepo() {
             onClick={() => setActiveCategory(item.id)}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all flex items-center gap-2 ${
               activeCategory === item.id 
-                ? (isImmersive ? 'bg-[#00FFAB] text-black shadow-[0_0_10px_rgba(0,255,171,0.3)]' : 'bg-white text-black') 
+                ? (isImmersive ? 'bg-primary-container text-black shadow-[0_0_10px_rgba(45,212,191,0.3)]' : 'bg-white text-black') 
                 : 'bg-[#1A1A1A] text-gray-400 border border-white/5'
             }`}
           >
@@ -506,17 +505,17 @@ export default function GigsRepo() {
               transition={{ duration: 0.3 }}
               className={`relative rounded-xl overflow-hidden transition-all duration-300 ${
                 isImmersive 
-                  ? 'bg-[#1A1A1A] border border-[#00FFAB]/20 shadow-[0_4px_20px_rgba(0,255,171,0.05)] hover:shadow-[0_4px_25px_rgba(0,255,171,0.1)]' 
+                  ? 'bg-[#1A1A1A] border border-primary-container/20 shadow-[0_4px_20px_rgba(45,212,191,0.05)] hover:shadow-[0_4px_25px_rgba(45,212,191,0.1)]' 
                   : 'bg-[#161616] border border-white/5'
               } ${isGrid ? 'p-4 flex flex-col h-full' : 'p-5'}`}
             >
               {isImmersive && (
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#00FFAB] via-transparent to-transparent pointer-events-none"></div>
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary-container via-transparent to-transparent pointer-events-none"></div>
               )}
               
               <div className={`flex justify-between items-start ${isGrid ? 'mb-3' : 'mb-4'}`}>
                 <span className={`text-[8px] tracking-widest uppercase px-2 py-1 rounded ${
-                  isImmersive ? 'bg-[#00FFAB]/10 text-[#00FFAB]' : 'bg-white/10 text-gray-300'
+                  isImmersive ? 'bg-primary-container/10 text-primary-container' : 'bg-white/10 text-gray-300'
                 }`}>
                   {doc.category}
                 </span>
@@ -525,7 +524,7 @@ export default function GigsRepo() {
 
               <h3 className={`font-bold mb-2 leading-tight ${isGrid ? 'text-sm' : 'text-lg'}`}>
                 <span className="text-white">{doc.title1} </span>
-                <span className={isImmersive ? 'text-[#00FFAB]' : 'text-white'}>{doc.titleHighlight} </span>
+                <span className={isImmersive ? 'text-primary-container' : 'text-white'}>{doc.titleHighlight} </span>
                 <span className="text-white">{doc.title2}</span>
               </h3>
 
@@ -533,7 +532,7 @@ export default function GigsRepo() {
                 {doc.description}
               </p>
 
-              <div className={`flex items-center justify-between mt-auto pt-3 border-t ${isImmersive ? 'border-[#00FFAB]/10' : 'border-white/5'}`}>
+              <div className={`flex items-center justify-between mt-auto pt-3 border-t ${isImmersive ? 'border-primary-container/10' : 'border-white/5'}`}>
                 <div className="flex gap-1.5">
                   {doc.tags.slice(0, isGrid ? 1 : 2).map(tag => (
                     <span key={tag} className="text-[8px] text-gray-500 border border-gray-700 px-1.5 py-0.5 rounded tracking-widest">
@@ -542,8 +541,8 @@ export default function GigsRepo() {
                   ))}
                 </div>
                 <div className="flex items-center gap-1">
-                  <ShieldCheck className={`w-3 h-3 ${isImmersive ? 'text-[#00FFAB]' : 'text-gray-400'}`} />
-                  <span className={`text-[8px] font-mono ${isImmersive ? 'text-[#00FFAB]' : 'text-gray-400'}`}>VERIFIED</span>
+                  <ShieldCheck className={`w-3 h-3 ${isImmersive ? 'text-primary-container' : 'text-gray-400'}`} />
+                  <span className={`text-[8px] font-mono ${isImmersive ? 'text-primary-container' : 'text-gray-400'}`}>VERIFIED</span>
                 </div>
               </div>
             </motion.div>
@@ -579,7 +578,7 @@ export default function GigsRepo() {
             <div className="p-8">
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-white/10 rounded-xl p-12 flex flex-col items-center justify-center text-center hover:border-[#00FFAB]/50 transition-colors cursor-pointer group relative overflow-hidden"
+                className="border-2 border-dashed border-white/10 rounded-xl p-12 flex flex-col items-center justify-center text-center hover:border-primary-container/50 transition-colors cursor-pointer group relative overflow-hidden"
               >
                 <input 
                   type="file" 
@@ -591,16 +590,16 @@ export default function GigsRepo() {
                 
                 {uploadFile ? (
                   <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 bg-[#00FFAB]/10 rounded-full flex items-center justify-center mb-4">
-                      <CheckCircle2 className="w-8 h-8 text-[#00FFAB]" />
+                    <div className="w-16 h-16 bg-primary-container/10 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 className="w-8 h-8 text-primary-container" />
                     </div>
                     <p className="text-sm font-bold text-white mb-1">File Selected</p>
                     <p className="text-xs text-gray-500">Click to change</p>
                   </div>
                 ) : (
                   <>
-                    <div className="w-16 h-16 bg-[#00FFAB]/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <UploadCloud className="w-8 h-8 text-[#00FFAB]" />
+                    <div className="w-16 h-16 bg-primary-container/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-8 h-8 text-primary-container" />
                     </div>
                     <p className="text-sm font-bold text-white mb-2">Drop files here or click to browse</p>
                     <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
@@ -615,7 +614,7 @@ export default function GigsRepo() {
                     type="text" 
                     value={uploadTitle}
                     onChange={(e) => setUploadTitle(e.target.value)}
-                    className="w-full bg-[#1A1A1A] border border-white/5 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00FFAB] transition-colors" 
+                    className="w-full bg-[#1A1A1A] border border-white/5 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-container transition-colors" 
                     placeholder="e.g. Q4 Performance Audit" 
                   />
                 </div>
@@ -624,7 +623,7 @@ export default function GigsRepo() {
                   <select 
                     value={uploadCategory}
                     onChange={(e) => setUploadCategory(e.target.value)}
-                    className="w-full bg-[#1A1A1A] border border-white/5 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00FFAB] transition-colors appearance-none"
+                    className="w-full bg-[#1A1A1A] border border-white/5 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-container transition-colors appearance-none"
                   >
                     <option>Certifications</option>
                     <option>Publications</option>
@@ -645,7 +644,7 @@ export default function GigsRepo() {
               <button 
                 onClick={handleUploadSubmit}
                 disabled={isUploading}
-                className={`bg-[#00FFAB] text-black px-8 py-2 rounded font-black text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(0,255,171,0.3)] flex items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 transition-transform'}`}
+                className={`bg-primary-container text-black px-8 py-2 rounded font-black text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(45,212,191,0.3)] flex items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 transition-transform'}`}
               >
                 {isUploading ? (
                   <>

@@ -7,7 +7,7 @@ import CreateBountyModal from './components/CreateBountyModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import DirectMessages from './components/DirectMessages';
 import ArchiveSidebar from './components/ArchiveSidebar';
-import { CallManager } from './components/CallManager';
+import { CallManager, CallSignals } from './components/CallManager';
 import SearchView from './components/SearchView';
 import NetworkView from './components/NetworkView';
 import ActivityView from './components/ActivityView';
@@ -17,13 +17,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 
 // Firebase imports
-import { db } from './firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, deleteDoc, where, limit, setDoc, increment } from 'firebase/firestore';
+import { db, handleFirestoreError } from './firebase';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, deleteDoc, where, limit, setDoc, increment, getDocs } from 'firebase/firestore';
 
 // Types
 interface UserData {
   id: string;
   username: string;
+  handle?: string;
   email: string;
   professional_bio: string;
   is_verified: boolean;
@@ -31,6 +32,7 @@ interface UserData {
   following: string[];
   followers: string[];
   profileImage?: string;
+  bannerImage?: string;
   location?: string;
   website?: string;
   competencies?: string[];
@@ -83,8 +85,9 @@ const PostCard: React.FC<{
   onStartDM: (userId: string) => void,
   onReVibe: (post: Post) => void,
   onLike: (postId: string, isLiked: boolean) => void,
-  onComment: (postId: string, content: string) => void
-}> = ({ post, currentUser, authorProfileImage, onFollowToggle, onDelete, onStartDM, onReVibe, onLike, onComment }) => {
+  onComment: (postId: string, content: string) => void,
+  onViewProfile?: (user: any) => void
+}> = ({ post, currentUser, authorProfileImage, onFollowToggle, onDelete, onStartDM, onReVibe, onLike, onComment, onViewProfile }) => {
   const isVibe = post.type === 'VIBE' || post.type === 'RE_VIBE';
   const isSystem = post.type === 'SYSTEM';
   
@@ -185,7 +188,12 @@ const PostCard: React.FC<{
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-3">
           <div 
-            onClick={() => !isMe && post.authorId && onStartDM(post.authorId)}
+            onClick={() => !isMe && post.authorId && onViewProfile?.({ 
+              id: post.authorId, 
+              username: post.authorName || post.author, 
+              profileImage: authorProfileImage,
+              professional_bio: post.content ? post.content.substring(0, 100) : post.description
+            })}
             className={`w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center shrink-0 overflow-hidden ${!isMe ? 'cursor-pointer hover:brightness-110 transition-all' : ''}`}
           >
             {authorProfileImage ? (
@@ -197,7 +205,12 @@ const PostCard: React.FC<{
           <div>
             <div className="font-bold text-on-surface text-sm flex items-center gap-2">
               <span 
-                onClick={() => !isMe && post.authorId && onStartDM(post.authorId)}
+                onClick={() => !isMe && post.authorId && onViewProfile?.({ 
+                  id: post.authorId, 
+                  username: post.authorName || post.author, 
+                  profileImage: authorProfileImage,
+                  professional_bio: post.content ? post.content.substring(0, 100) : post.description
+                })}
                 className={!isMe ? 'cursor-pointer hover:text-primary-container transition-colors' : ''}
               >
                 {post.authorName || 'User'}
@@ -394,6 +407,7 @@ export default function App() {
   // Edit Profile State
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editUsername, setEditUsername] = useState('');
+  const [editHandle, setEditHandle] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editIsVerified, setEditIsVerified] = useState(false);
   const [editProfileImage, setEditProfileImage] = useState('');
@@ -403,8 +417,18 @@ export default function App() {
   const [editCompetencies, setEditCompetencies] = useState<string>('');
 
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'dashboard' | 'bounties' | 'gigs' | 'search' | 'network' | 'activity' | 'messaging'>('home');
+  const [profileSubject, setProfileSubject] = useState<any>(null); // State for viewing someone else's profile
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Handle viewing a specific user profile
+  const handleViewProfile = (targetUser: any) => {
+    setProfileSubject(targetUser);
+    setCurrentView('profile');
+    setIsNavVisible(true);
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   
   // Scroll direction state for dynamic UI behaviour
   const [isNavVisible, setIsNavVisible] = useState(true);
@@ -465,7 +489,8 @@ export default function App() {
         createdAt: Date.now()
       });
       toast.success('Bounty posted successfully');
-    } catch (error) {
+    } catch (error: any) {
+      handleFirestoreError(error, 'create', 'bounties');
       console.error(error);
       toast.error('Failed to post bounty');
     }
@@ -487,10 +512,16 @@ export default function App() {
               if (mockUserDoc.exists()) {
                 setUser(mockUserDoc.data() as UserData);
               }
+            }).catch(err => {
+              console.error("Critical: Could not fetch fallback user from server.", err);
+              toast.error("Connectivity issue: Could not fetch user data from server.");
             });
           }
         }, (error) => {
           console.error("Error fetching user:", error);
+          if (error.code === 'unavailable') {
+            toast.error("Establishing neural link... (Offline mode active)", { id: 'offline-toast' });
+          }
         });
       } else {
         setUser(null);
@@ -548,6 +579,7 @@ export default function App() {
   const openEditProfile = () => {
     if (user) {
       setEditUsername(user.username);
+      setEditHandle(user.handle || '');
       setEditBio(user.professional_bio);
       setEditIsVerified(user.is_verified);
       setEditProfileImage(user.profileImage || '');
@@ -582,10 +614,24 @@ export default function App() {
     if (!user) return;
     setIsUpdatingProfile(true);
 
+    const cleanHandle = editHandle.toLowerCase().trim().replace(/\s+/g, '_');
+
     try {
+      // Check for handle uniqueness if handle has changed
+      if (cleanHandle && cleanHandle !== user.handle) {
+        const handleQuery = query(collection(db, 'users'), where('handle', '==', cleanHandle));
+        const handleSnap = await getDocs(handleQuery);
+        if (!handleSnap.empty) {
+          toast.error('Identity collision: Signal handle already allocated in neural registry.');
+          setIsUpdatingProfile(false);
+          return;
+        }
+      }
+
       const userRef = doc(db, 'users', user.id);
       const updatedData = {
         username: editUsername,
+        handle: cleanHandle,
         professional_bio: editBio,
         is_verified: editIsVerified,
         profileImage: editProfileImage,
@@ -606,7 +652,8 @@ export default function App() {
 
       setIsEditProfileOpen(false);
       toast.success('Identity recalibrated successfully');
-    } catch (error) {
+    } catch (error: any) {
+      handleFirestoreError(error, 'update', `users/${user.id}`);
       console.error(error);
       toast.error('Neural registry update failed');
     } finally {
@@ -632,7 +679,8 @@ export default function App() {
         setUser({ ...user, following: [...(user.following || []), targetId] });
         toast.success('Following user');
       }
-    } catch (error) {
+    } catch (error: any) {
+      handleFirestoreError(error, 'update', `users/${user.id}`);
       console.error(error);
       toast.error('Failed to update follow status');
     }
@@ -643,7 +691,8 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'posts', postId));
       toast.success('Post deleted');
-    } catch (error) {
+    } catch (error: any) {
+      handleFirestoreError(error, 'delete', `posts/${postId}`);
       console.error(error);
       toast.error('Failed to delete post');
     }
@@ -699,7 +748,8 @@ export default function App() {
       }
       setActiveConversationId(convId);
       setCurrentView('messaging');
-    } catch (error) {
+    } catch (error: any) {
+      handleFirestoreError(error, 'create', 'conversations');
       console.error(error);
       toast.error('Failed to start conversation');
     }
@@ -834,6 +884,7 @@ export default function App() {
           <CallManager currentUser={user} allUsers={allUsers} />
 
       {/* TopNavBar - Smart Hide on Scroll */}
+      {currentView !== 'messaging' && (
       <motion.nav 
         initial={false}
         animate={{ 
@@ -866,8 +917,11 @@ export default function App() {
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             <div 
-              onClick={() => setCurrentView('profile')}
-              className={`w-8 h-8 rounded-lg overflow-hidden border cursor-pointer transition-all ${currentView === 'profile' ? 'border-primary-container ring-2 ring-primary-container/20' : 'border-outline-variant/30 hover:border-primary-container'}`}
+              onClick={() => {
+                setProfileSubject(null);
+                setCurrentView('profile');
+              }}
+              className={`w-8 h-8 rounded-lg overflow-hidden border cursor-pointer transition-all ${currentView === 'profile' && !profileSubject ? 'border-primary-container ring-2 ring-primary-container/20' : 'border-outline-variant/30 hover:border-primary-container'}`}
             >
               {user?.profileImage ? (
                 <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
@@ -880,8 +934,10 @@ export default function App() {
           </div>
         </div>
       </motion.nav>
+      )}
 
       {/* Bottom Navigation Bar (Mobile) - Smart Hide */}
+      {currentView !== 'messaging' && (
       <motion.div 
         initial={false}
         animate={{ 
@@ -926,10 +982,29 @@ export default function App() {
           </div>
         </button>
       </motion.div>
+      )}
 
       {/* Floating Theme Toggle (Removed per user request) */}
+      {/* Mobile Floating Action Button */}
+      {currentView !== 'messaging' && currentView !== 'gigs' && currentView !== 'bounties' && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ 
+            scale: isNavVisible ? 1 : 0, 
+            opacity: isNavVisible ? 1 : 0,
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsModalOpen(true)}
+          className="lg:hidden fixed bottom-24 right-6 w-14 h-14 bg-primary-container text-on-primary-fixed rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(0,255,171,0.3)] z-[70] transition-all border-4 border-surface"
+          title="New Transmission"
+        >
+          <Plus className="w-7 h-7" />
+        </motion.button>
+      )}
+
         {/* SideNavBar - Collapses on Scroll Down */}
-        {currentView !== 'gigs' && (
+        {currentView !== 'gigs' && currentView !== 'messaging' && (
         <motion.aside 
           initial={false}
           animate={{ 
@@ -975,7 +1050,13 @@ export default function App() {
                 <Users className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Network</span>}
               </button>
-              <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'profile' ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}>
+              <button 
+                onClick={() => {
+                  setProfileSubject(null);
+                  setCurrentView('profile');
+                }} 
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded transition-all ${currentView === 'profile' && !profileSubject ? 'bg-primary-container/10 text-primary-container border border-primary-container/30' : 'text-secondary hover:bg-surface-container-high border border-transparent'}`}
+              >
                 <User className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="font-label uppercase tracking-widest text-[10px]">Profile</span>}
               </button>
@@ -1034,7 +1115,7 @@ export default function App() {
         {/* Main Content Area */}
         <main 
           onScroll={handleScroll}
-          className={`flex-1 w-full bg-surface transition-all duration-300 ease-in-out ${currentView === 'gigs' ? 'lg:ml-0' : (isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')} ${currentView === 'messaging' ? 'h-[calc(100vh-60px)] overflow-hidden' : ''}`}
+          className={`flex-1 w-full bg-surface transition-all duration-300 ease-in-out ${(currentView === 'gigs' || currentView === 'messaging') ? 'lg:ml-0' : (isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')} ${currentView === 'messaging' ? 'h-screen h-[100dvh] overflow-hidden' : 'min-h-[calc(100vh-60px)]'}`}
         >
           <AnimatePresence mode="wait">
           {currentView === 'home' && (
@@ -1061,6 +1142,21 @@ export default function App() {
                   </div>
                 </div>
               </header>
+
+              {/* Inline Post Trigger */}
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="w-full bg-surface border border-outline-variant/15 rounded-2xl p-4 mb-6 flex items-center gap-4 hover:border-primary-container/50 transition-all group shadow-sm"
+              >
+                <div className="w-10 h-10 rounded-xl overflow-hidden bg-surface-container-high shrink-0 border border-outline-variant/20">
+                  <img src={user?.profileImage || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100"} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-sm text-outline/50 font-medium">Transmit a raw vibe...</span>
+                </div>
+                <Edit2 className="w-4 h-4 text-outline/40 group-hover:text-primary-container transition-colors" />
+              </button>
+
               <div className="space-y-4">
                 <AnimatePresence>
                 {vibePosts.map(post => (
@@ -1075,6 +1171,7 @@ export default function App() {
                     onReVibe={handleReVibePost}
                     onLike={handleLikePost}
                     onComment={handleCommentPost}
+                    onViewProfile={handleViewProfile}
                   />
                 ))}
                 </AnimatePresence>
@@ -1109,6 +1206,7 @@ export default function App() {
                     onReVibe={handleReVibePost}
                     onLike={handleLikePost}
                     onComment={handleCommentPost}
+                    onViewProfile={handleViewProfile}
                   />
                 ))}
                 </AnimatePresence>
@@ -1136,6 +1234,7 @@ export default function App() {
                   <p className="font-label text-xs text-primary-container tracking-widest uppercase">Unified Stream</p>
                 </div>
               </header>
+
               <div className="space-y-4">
                 <AnimatePresence>
                 {visiblePosts.map(post => (
@@ -1150,6 +1249,7 @@ export default function App() {
                     onReVibe={handleReVibePost}
                     onLike={handleLikePost}
                     onComment={handleCommentPost}
+                    onViewProfile={handleViewProfile}
                   />
                 ))}
                 </AnimatePresence>
@@ -1166,15 +1266,25 @@ export default function App() {
           {currentView === 'profile' && (
             <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
               <ProfileView 
-                user={user} 
+                user={profileSubject || user} 
                 posts={posts} 
+                isOwnProfile={!profileSubject || profileSubject.id === user?.id}
                 onEdit={openEditProfile} 
                 onLogout={handleLogout}
-                onBack={() => setCurrentView('home')}
+                onBack={() => {
+                  if (profileSubject) {
+                    setProfileSubject(null); // Clear subject when going back from someone's profile
+                  } else {
+                    setCurrentView('home');
+                  }
+                }}
                 onDeletePost={handleDeletePost}
                 onLikePost={handleLikePost}
                 onReVibePost={handleReVibePost}
                 onCommentPost={handleCommentPost}
+                onStartDM={handleStartDM}
+                onStartCall={(id) => CallSignals.triggerCall(id, 'audio')}
+                onStartVideoCall={(id) => CallSignals.triggerCall(id, 'video')}
               />
             </motion.div>
           )}
@@ -1184,7 +1294,8 @@ export default function App() {
               <SearchView 
                 currentUser={user} 
                 onFollowUser={handleFollowToggle} 
-                onNavigateToProfile={() => setCurrentView('profile')}
+                onNavigateToProfile={handleViewProfile}
+                onCreatePost={() => setIsModalOpen(true)}
               />
             </motion.div>
           )}
@@ -1193,8 +1304,9 @@ export default function App() {
             <motion.div key="network" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
               <NetworkView 
                 currentUser={user} 
-                onNavigateToProfile={() => setCurrentView('profile')}
+                onNavigateToProfile={handleViewProfile}
                 onStartDM={handleStartDM}
+                onCreatePost={() => setIsModalOpen(true)}
               />
             </motion.div>
           )}
@@ -1203,9 +1315,10 @@ export default function App() {
             <motion.div key="activity" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
               <ActivityView 
                 onBack={() => setCurrentView('home')}
-                onNavigateToProfile={() => setCurrentView('profile')}
+                onNavigateToProfile={handleViewProfile}
                 onNavigateToPost={(id) => { toast('Navigating to post ' + id); setCurrentView('home'); }}
                 onNavigateToDMs={() => setCurrentView('messaging')}
+                onCreatePost={() => setIsModalOpen(true)}
               />
             </motion.div>
           )}
@@ -1221,8 +1334,9 @@ export default function App() {
             >
               <MessagingView 
                 currentUser={user} 
-                onNavigateToProfile={() => setCurrentView('profile')}
+                onNavigateToProfile={handleViewProfile}
                 initialChatId={activeConversationId}
+                onBack={() => setCurrentView('home')}
               />
             </motion.div>
           )}
@@ -1266,13 +1380,13 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/20 flex items-center gap-6 hover:border-[#00FFAB]/30 transition-colors">
-                    <div className="w-16 h-16 rounded-full bg-[#00FFAB]/10 flex items-center justify-center shrink-0">
-                      <Heart className="w-8 h-8 text-[#00FFAB]" />
+                  <div className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/20 flex items-center gap-6 hover:border-primary-container/30 transition-colors">
+                    <div className="w-16 h-16 rounded-full bg-primary-container/10 flex items-center justify-center shrink-0">
+                      <Heart className="w-8 h-8 text-primary-container" />
                     </div>
                     <div>
                       <p className="font-label text-xs text-secondary uppercase tracking-widest mb-1">Total Engagement</p>
-                      <p className="text-5xl font-black font-headline text-[#00FFAB]">{totalEngagement}</p>
+                      <p className="text-5xl font-black font-headline text-primary-container">{totalEngagement}</p>
                     </div>
                   </div>
                 </div>
@@ -1290,7 +1404,7 @@ export default function App() {
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
                           <span className="flex items-center gap-1.5 text-xs text-secondary font-mono"><MessageSquare className="w-3 h-3"/> {post.stats?.comments || 0}</span>
-                          <span className="flex items-center gap-1.5 text-xs text-[#00FFAB] font-mono"><Heart className="w-3 h-3"/> {post.stats?.likes || 0}</span>
+                          <span className="flex items-center gap-1.5 text-xs text-primary-container font-mono"><Heart className="w-3 h-3"/> {post.stats?.likes || 0}</span>
                         </div>
                       </div>
                     ))}
@@ -1349,7 +1463,7 @@ export default function App() {
                       <p className="text-sm text-secondary mt-1">{bounty.desc}</p>
                     </div>
                     <div className="sm:text-right shrink-0">
-                      <p className="font-headline font-black text-xl text-[#00FFAB]">{bounty.price}</p>
+                      <p className="font-headline font-black text-xl text-primary-container">{bounty.price}</p>
                       <p className="font-label text-[10px] text-secondary uppercase tracking-widest mt-1">{bounty.currency}</p>
                     </div>
                   </motion.div>
@@ -1475,17 +1589,35 @@ export default function App() {
                 </div>
 
                 <div className="space-y-8">
-                  <div className="space-y-2">
-                    <label className="font-label text-[10px] font-black uppercase tracking-widest text-outline ml-1 flex items-center gap-2">
-                      <User className="w-3 h-3" /> Professional Handle
-                    </label>
-                    <input 
-                      required
-                      value={editUsername}
-                      onChange={(e) => setEditUsername(e.target.value)}
-                      className="w-full h-14 bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 text-sm font-black focus:outline-none focus:border-primary-container transition-all tracking-tight"
-                      placeholder="Neural_Architect_01"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="font-label text-[10px] font-black uppercase tracking-widest text-outline ml-1 flex items-center gap-2">
+                        <User className="w-3 h-3" /> Identity Alias (Display Name)
+                      </label>
+                      <input 
+                        required
+                        value={editUsername}
+                        onChange={(e) => setEditUsername(e.target.value)}
+                        className="w-full h-14 bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 text-sm font-black focus:outline-none focus:border-primary-container transition-all tracking-tight"
+                        placeholder="Neural_Architect_01"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="font-label text-[10px] font-black uppercase tracking-widest text-outline ml-1 flex items-center gap-2">
+                        <Zap className="w-3 h-3" /> Unique Signal Handle (@handle)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-outline font-mono text-sm">@</span>
+                        <input 
+                          required
+                          value={editHandle}
+                          onChange={(e) => setEditHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                          className="w-full h-14 bg-surface-container-low border border-outline-variant/30 rounded-2xl pl-10 pr-5 text-sm font-mono font-bold focus:outline-none focus:border-primary-container transition-all tracking-tight text-primary-container"
+                          placeholder="architect_node"
+                        />
+                      </div>
+                      <p className="text-[10px] text-outline/50 ml-1 italic font-medium uppercase tracking-widest leading-relaxed">System requirement: Handle must be unique to maintain node frequency integrity.</p>
+                    </div>
                   </div>
                 </div>
 

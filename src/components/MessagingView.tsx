@@ -40,11 +40,12 @@ interface Chat {
 
 interface MessagingViewProps {
   currentUser: any;
-  onNavigateToProfile: () => void;
+  onNavigateToProfile: (user: any) => void;
   initialChatId?: string | null;
+  onBack: () => void;
 }
 
-const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateToProfile, initialChatId }) => {
+const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateToProfile, initialChatId, onBack }) => {
   const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Groups'>('All');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(initialChatId || null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -289,6 +290,13 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
         <header className="px-4 py-4 flex flex-col gap-4 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
           <div className="flex justify-between items-center px-1">
             <div className="flex items-center gap-2">
+              <button 
+                onClick={onBack}
+                className="p-2 -ml-2 mr-1 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-95"
+                title="Return to Mainframe"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
               <div className="w-2 h-6 bg-primary-container rounded-full"></div>
               <h1 className="text-2xl font-black tracking-tighter text-on-surface">TERMINAL</h1>
             </div>
@@ -448,14 +456,14 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                   <button onClick={() => setSelectedChatId(null)} className="md:hidden p-1 -ml-1.5 hover:bg-surface-container rounded-lg text-outline transition-all">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <div className="relative group cursor-pointer" onClick={onNavigateToProfile}>
+                  <div className="relative group cursor-pointer" onClick={() => onNavigateToProfile(selectedChatOtherUser)}>
                     <div className="w-9 h-9 rounded-xl overflow-hidden border border-outline-variant/20 shadow-md transform group-hover:scale-105 transition-all duration-300">
                       <img src={selectedChatOtherUser?.profileImage || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary-container border-[2px] border-surface rounded-full shadow-lg"></div>
                   </div>
                   <div>
-                    <h2 className="text-sm font-black tracking-tight text-on-surface leading-tight hover:text-primary-container cursor-pointer transition-colors" onClick={onNavigateToProfile}>
+                    <h2 className="text-sm font-black tracking-tight text-on-surface leading-tight hover:text-primary-container cursor-pointer transition-colors" onClick={() => onNavigateToProfile(selectedChatOtherUser)}>
                       {selectedChatOtherUser?.username || 'Gigs Operative'}
                     </h2>
                     <div className="flex items-center gap-1.5">
@@ -465,6 +473,28 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => {
+                      if (selectedChatOtherUser?.id) {
+                        CallSignals.triggerCall(selectedChatOtherUser.id, 'audio');
+                      }
+                    }}
+                    className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"
+                    title="Audio Link"
+                  >
+                    <Phone className="w-4.5 h-4.5" />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (selectedChatOtherUser?.id) {
+                        CallSignals.triggerCall(selectedChatOtherUser.id, 'video');
+                      }
+                    }}
+                    className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"
+                    title="Video Link"
+                  >
+                    <Video className="w-4.5 h-4.5" />
+                  </button>
                   <button className="p-2.5 hover:bg-surface-container rounded-xl text-outline hover:text-primary-container transition-all active:scale-90"><MoreHorizontal className="w-4.5 h-4.5" /></button>
                 </div>
               </header>

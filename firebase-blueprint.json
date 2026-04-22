@@ -7,6 +7,7 @@
       "properties": {
         "id": { "type": "string" },
         "username": { "type": "string" },
+        "handle": { "type": "string" },
         "email": { "type": "string" },
         "professional_bio": { "type": "string" },
         "is_verified": { "type": "boolean" },

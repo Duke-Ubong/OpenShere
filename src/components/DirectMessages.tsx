@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Send, User, MessageSquare, ChevronLeft, Smile, Paperclip, Camera, Mic } from 'lucide-react';
+import { X, Send, User, MessageSquare, ChevronLeft, Smile, Paperclip, Camera, Mic, Phone, Video } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { CallSignals } from './CallManager';
 
 interface Message {
   id: string;
@@ -126,9 +127,29 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
               {activeConversationId ? (otherUser?.username || 'Signal') : 'Archives'}
             </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-outline" />
-          </button>
+          <div className="flex items-center gap-1">
+            {activeConversationId && otherUser && (
+              <>
+                <button 
+                  onClick={() => CallSignals.triggerCall(otherUser.id, 'audio')}
+                  className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-outline hover:text-primary"
+                  title="Audio Link"
+                >
+                  <Phone className="w-4.5 h-4.5" />
+                </button>
+                <button 
+                  onClick={() => CallSignals.triggerCall(otherUser.id, 'video')}
+                  className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-outline hover:text-primary"
+                  title="Video Link"
+                >
+                  <Video className="w-4.5 h-4.5" />
+                </button>
+              </>
+            )}
+            <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
+              <X className="w-5 h-5 text-outline" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col">

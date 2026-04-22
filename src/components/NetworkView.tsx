@@ -7,8 +7,9 @@ import { CallSignals } from './CallManager';
 
 interface NetworkViewProps {
   currentUser: any;
-  onNavigateToProfile: () => void;
+  onNavigateToProfile: (user: any) => void;
   onStartDM: (otherUserId: string) => void;
+  onCreatePost?: () => void;
 }
 
 interface Node extends d3.SimulationNodeDatum {
@@ -89,8 +90,8 @@ const ConnectionGraph: React.FC<{ currentUser: any }> = ({ currentUser }) => {
     // Node Background
     node.append("circle")
       .attr("r", d => d.degree === 0 ? 30 : d.degree === 1 ? 25 : 20)
-      .attr("fill", d => d.degree === 0 ? "#00FFAB" : d.degree === 1 ? "#1a1a1a" : "#1a1a1a")
-      .attr("stroke", d => d.degree === 0 ? "#fff" : d.degree === 1 ? "#00FFAB" : "#666")
+      .attr("fill", d => d.degree === 0 ? "#2dd4bf" : d.degree === 1 ? "#1a1a1a" : "#1a1a1a")
+      .attr("stroke", d => d.degree === 0 ? "#fff" : d.degree === 1 ? "#2dd4bf" : "#666")
       .attr("stroke-width", 2);
 
     // Filter effect for shadows
@@ -174,7 +175,7 @@ const ConnectionGraph: React.FC<{ currentUser: any }> = ({ currentUser }) => {
       </div>
       <div className="absolute bottom-6 right-6 z-10 flex gap-4">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#00FFAB]"></div>
+          <div className="w-2 h-2 rounded-full bg-[#2dd4bf]"></div>
           <span className="text-[8px] font-bold text-outline uppercase tracking-widest">Direct</span>
         </div>
         <div className="flex items-center gap-2">
@@ -307,7 +308,7 @@ const WhatsAppStyleGroups: React.FC = () => {
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <h3 className="font-bold text-base truncate uppercase tracking-tight">{group.name}</h3>
-                    {group.isVerified && <Check className="w-3.5 h-3.5 text-[#00FFAB]" />}
+                    {group.isVerified && <Check className="w-3.5 h-3.5 text-[#2dd4bf]" />}
                   </div>
                   <span className="text-[10px] text-outline font-medium">{group.time}</span>
                 </div>
@@ -318,7 +319,7 @@ const WhatsAppStyleGroups: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold text-outline uppercase tracking-widest">{group.members} nodes</span>
                       <div className="flex items-center gap-1">
-                        <TrendingUp className={`w-3 h-3 ${group.activity > 80 ? 'text-[#00FFAB]' : 'text-outline'}`} />
+                        <TrendingUp className={`w-3 h-3 ${group.activity > 80 ? 'text-primary-container' : 'text-outline'}`} />
                         <span className="text-[10px] font-bold text-outline">{group.activity}%</span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -329,7 +330,7 @@ const WhatsAppStyleGroups: React.FC = () => {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {group.unread > 0 && (
-                      <span className="bg-[#00FFAB] text-black text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(0,255,171,0.5)]">
+                      <span className="bg-[#2dd4bf] text-black text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(45,212,191,0.5)]">
                         {group.unread}
                       </span>
                     )}
@@ -337,7 +338,7 @@ const WhatsAppStyleGroups: React.FC = () => {
                       onClick={(e) => { e.stopPropagation(); handleToggleGroup(group.id, group.name); }}
                       className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
                         joinedGroups.includes(group.id) 
-                          ? 'border-[#00FFAB]/20 text-[#00FFAB] bg-[#00FFAB]/5' 
+                          ? 'border-primary-container/20 text-primary-container bg-primary-container/5' 
                           : 'border-outline-variant/30 text-on-surface hover:bg-surface-container-highest'
                       }`}
                     >
@@ -361,7 +362,7 @@ const WhatsAppStyleGroups: React.FC = () => {
 };
 
 
-const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProfile, onStartDM }) => {
+const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProfile, onStartDM, onCreatePost }) => {
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const [invites, setInvites] = useState([
     {
@@ -438,6 +439,15 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
               onFocus={() => toast.info('Neural search active')}
             />
           </div>
+          {onCreatePost && (
+            <button 
+              onClick={onCreatePost}
+              className="p-2 hover:bg-surface-container rounded-full transition-colors text-primary-container group relative"
+              title="New Transmission"
+            >
+              <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
           <button 
             onClick={() => toast('No new signal notifications')}
             className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface group relative"
@@ -446,7 +456,7 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
             <div className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface shadow-sm"></div>
           </button>
           <div 
-            onClick={onNavigateToProfile}
+            onClick={() => onNavigateToProfile(currentUser)}
             className="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-outline-variant/30 cursor-pointer active:scale-95 transition-transform"
           >
             {currentUser?.profileImage ? (
@@ -482,9 +492,9 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
         <div className="grid grid-cols-2 gap-4 mb-10">
           <div 
             onClick={() => toast.info('Accessing global node register...')}
-            className="bg-surface-container-low border border-outline-variant/10 p-6 rounded-[32px] group hover:border-[#00FFAB]/30 transition-all cursor-pointer active:scale-[0.98]"
+            className="bg-surface-container-low border border-outline-variant/10 p-6 rounded-[32px] group hover:border-[#2dd4bf]/30 transition-all cursor-pointer active:scale-[0.98]"
           >
-            <TrendingUp className="w-6 h-6 text-[#00FFAB] mb-4 group-hover:translate-y-[-2px] transition-transform" />
+            <TrendingUp className="w-6 h-6 text-[#2dd4bf] mb-4 group-hover:translate-y-[-2px] transition-transform" />
             <p className="text-3xl font-black tracking-tighter">8,432</p>
             <p className="text-[10px] text-outline uppercase tracking-widest font-bold">Network Nodes</p>
           </div>
@@ -524,12 +534,15 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
                   key={invite.id} 
                   className="bg-surface-container-low border border-outline-variant/10 rounded-3xl p-6 transition-all hover:bg-surface-container shadow-sm group/invite"
                 >
-                  <div className="flex gap-4 mb-4">
+                  <div 
+                    className="flex gap-4 mb-4 cursor-pointer group/invite"
+                    onClick={() => onNavigateToProfile(invite)}
+                  >
                     <div className="w-16 h-16 rounded-2xl overflow-hidden border border-outline-variant/30 flex-shrink-0 group-hover/invite:scale-105 transition-transform">
                       <img src={invite.image} alt={invite.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg leading-tight mb-0.5 truncate">{invite.name}</h3>
+                      <h3 className="font-bold text-lg leading-tight mb-0.5 truncate group-hover/invite:text-primary-container transition-colors">{invite.name}</h3>
                       <p className="text-xs text-primary-container font-black uppercase tracking-tighter mb-2 truncate">{invite.role}</p>
                       <p className="text-[10px] text-secondary italic leading-tight line-clamp-2">{invite.note}</p>
                     </div>
@@ -580,7 +593,15 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary-container">{person.badge}</span>
                   </div>
                 )}
-                <div className="w-24 h-24 rounded-3xl overflow-hidden mb-6 border border-outline-variant/30 group-hover:scale-105 transition-transform duration-500 shadow-xl relative">
+                <div 
+                  onClick={() => onNavigateToProfile({
+                    id: person.id,
+                    username: person.name,
+                    profileImage: person.image,
+                    professional_bio: person.role
+                  })}
+                  className="w-24 h-24 rounded-3xl overflow-hidden mb-6 border border-outline-variant/30 group-hover:scale-105 transition-transform duration-500 shadow-xl relative cursor-pointer"
+                >
                   <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
                   {connectedIds.includes(person.id) && (
                     <div className="absolute inset-0 bg-primary-container/40 backdrop-blur-sm flex items-center justify-center">
@@ -588,7 +609,17 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
                     </div>
                   )}
                 </div>
-                <h3 className="font-black text-xl mb-1">{person.name}</h3>
+                <h3 
+                  className="font-black text-xl mb-1 cursor-pointer hover:text-primary-container transition-colors"
+                  onClick={() => onNavigateToProfile({
+                    id: person.id,
+                    username: person.name,
+                    profileImage: person.image,
+                    professional_bio: person.role
+                  })}
+                >
+                  {person.name}
+                </h3>
                 <p className="text-xs text-outline font-medium mb-8 leading-relaxed max-w-[200px] h-10">{person.role}</p>
                 <div className="flex gap-2 w-full">
                   <button 
@@ -596,7 +627,7 @@ const NetworkView: React.FC<NetworkViewProps> = ({ currentUser, onNavigateToProf
                     disabled={connectedIds.includes(person.id)}
                     className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
                       connectedIds.includes(person.id)
-                        ? 'bg-[#00FFAB]/10 border border-[#00FFAB]/30 text-[#00FFAB]'
+                        ? 'bg-primary-container/10 border border-primary-container/30 text-primary-container'
                         : 'bg-surface-container-high border border-outline-variant/20 text-on-surface hover:bg-surface-container-highest'
                     }`}
                   >

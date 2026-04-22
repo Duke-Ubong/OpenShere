@@ -25,50 +25,56 @@
   --font-headline: "Inter", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-label: "Space Grotesk", monospace;
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(45, 212, 191, 0.3)); }
+    50% { opacity: 0.9; filter: drop-shadow(0 0 10px rgba(45, 212, 191, 0.5)); }
+  }
+  --animate-pulse-slow: pulse-glow 4s ease-in-out infinite;
 }
 
 :root {
   --secondary-container: #36485b;
   --on-surface: #e5e2e1;
-  --primary-container: #00ffab;
-  --on-primary: #003822;
-  --surface: #131313;
+  --primary-container: #2dd4bf;
+  --on-primary: #003731;
+  --surface: #0f1111;
   --secondary: #b5c8df;
-  --on-primary-container: #00714a;
+  --on-primary-container: #0d9488;
   --outline: #849589;
   --on-surface-variant: #b9cbbe;
-  --surface-container-high: #2a2a2a;
-  --surface-variant: #353534;
+  --surface-container-high: #242626;
+  --surface-variant: #2a2c2c;
   --on-secondary-container: #a4b7cd;
   --on-secondary: #203243;
-  --outline-variant: #3a4a40;
-  --surface-container: #201f1f;
-  --surface-container-highest: #353534;
+  --outline-variant: #2f3d35;
+  --surface-container: #1a1c1c;
+  --surface-container-highest: #2a2c2c;
   --error: #ffb4ab;
-  --surface-container-low: #1c1b1b;
-  --lounge-gold: #D4AF37;
+  --surface-container-low: #151717;
+  --lounge-gold: #C5A028;
 }
 
 :root.light {
-  --secondary-container: #d1e4fb;
+  --secondary-container: #e0f2f1;
   --on-surface: #0f172a;
-  --primary-container: #008f60;
+  --primary-container: #0d9488;
   --on-primary: #ffffff;
-  --surface: #f8fafc;
+  --surface: #fcfdfe;
   --secondary: #475569;
   --on-primary-container: #ffffff;
   --outline: #64748b;
   --on-surface-variant: #475569;
-  --surface-container-high: #e2e8f0;
-  --surface-variant: #f1f5f9;
+  --surface-container-high: #f1f5f9;
+  --surface-variant: #f8fafc;
   --on-secondary-container: #1e293b;
   --on-secondary: #ffffff;
-  --outline-variant: #cbd5e1;
-  --surface-container: #f1f5f9;
-  --surface-container-highest: #e2e8f0;
+  --outline-variant: #e2e8f0;
+  --surface-container: #f8fafc;
+  --surface-container-highest: #f1f5f9;
   --error: #ba1a1a;
-  --surface-container-low: #f8fafc;
-  --lounge-gold: #B8860B;
+  --surface-container-low: #fcfdfe;
+  --lounge-gold: #9E7D0A;
 }
 
 @layer utilities {
@@ -78,7 +84,7 @@
     border: 1px solid var(--outline-variant);
   }
   .mint-glow-active {
-    box-shadow: 0 0 15px rgba(0, 255, 171, 0.2);
+    box-shadow: 0 0 15px rgba(45, 212, 191, 0.15);
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;

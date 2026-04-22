@@ -33,6 +33,7 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUser, allUsers 
   
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const [callDuration, setCallDuration] = useState(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -77,6 +78,24 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUser, allUsers 
 
     return () => unsubscribe();
   }, [currentUser?.id]);
+  
+  useEffect(() => {
+    let interval: any;
+    if (activeCall) {
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      setCallDuration(0);
+    }
+    return () => clearInterval(interval);
+  }, [activeCall]);
+
+  const formatDuration = (seconds: number) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     // Expose start call globally
@@ -365,7 +384,7 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUser, allUsers 
             className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex flex-col"
           >
             <div className="flex-1 relative flex justify-center items-center">
-              {/* Remote Video */}
+              {/* Remote Video / Audio UI */}
               {activeCall.type === 'video' ? (
                 <video 
                   ref={remoteVideoRef} 
@@ -374,12 +393,63 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUser, allUsers 
                   className="w-full h-full object-cover max-h-screen"
                 />
               ) : (
-                <div className="w-32 h-32 rounded-full bg-surface-container overflow-hidden border border-outline-variant/30 flex justify-center items-center">
-                  {getOtherUser(activeCall.role === 'caller' ? activeCall.calleeId : activeCall.callerId)?.profileImage ? (
-                    <img src={getOtherUser(activeCall.role === 'caller' ? activeCall.calleeId : activeCall.callerId)?.profileImage} className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-12 h-12 text-outline" />
-                  )}
+                <div className="flex flex-col items-center gap-8">
+                  <div className="relative">
+                    {/* Pulsing rings for audio active state */}
+                    <motion.div 
+                      animate={{ scale: [1, 1.5], opacity: [0.3, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                      className="absolute inset-0 rounded-full bg-primary-container"
+                    />
+                    <motion.div 
+                      animate={{ scale: [1, 1.8], opacity: [0.2, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+                      className="absolute inset-0 rounded-full bg-primary-container"
+                    />
+                    
+                    <div className="w-48 h-48 rounded-full bg-surface-container overflow-hidden border-4 border-primary-container shadow-[0_0_50px_rgba(0,255,170,0.2)] flex justify-center items-center relative z-10">
+                      {getOtherUser(activeCall.role === 'caller' ? activeCall.calleeId : activeCall.callerId)?.profileImage ? (
+                        <img 
+                          src={getOtherUser(activeCall.role === 'caller' ? activeCall.calleeId : activeCall.callerId)?.profileImage} 
+                          className="w-full h-full object-cover" 
+                          alt="Callee"
+                        />
+                      ) : (
+                        <User className="w-20 h-20 text-outline" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Audio Waveform Visualization Simulation */}
+                  <div className="flex gap-1 h-8 items-end">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ 
+                          height: isMicOn ? [12, 32, 16, 28, 12] : 4 
+                        }}
+                        transition={{ 
+                          duration: 0.8 + Math.random() * 0.5, 
+                          repeat: Infinity, 
+                          ease: "easeInOut",
+                          delay: Math.random() * 0.5
+                        }}
+                        className="w-1.5 rounded-full bg-primary-container/60 shadow-[0_0_10px_rgba(0,255,170,0.3)]"
+                      />
+                    ))}
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    <h2 className="text-3xl font-black text-white tracking-tighter uppercase drop-shadow-lg">
+                      {getOtherUser(activeCall.role === 'caller' ? activeCall.calleeId : activeCall.callerId)?.username || 'Unknown Node'}
+                    </h2>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></div>
+                      <p className="text-sm font-mono font-bold text-primary-container uppercase tracking-widest bg-primary-container/10 px-3 py-1 rounded-full">
+                        Secure Audio Link Active
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -443,6 +513,9 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUser, allUsers 
                 {getOtherUser(activeCall.role === 'caller' ? activeCall.calleeId : activeCall.callerId)?.username || 'Unknown'}
               </h3>
               <p className="text-sm font-medium opacity-80 uppercase tracking-widest">{activeCall.type} Call</p>
+              <p className="text-xs font-mono font-bold text-primary-container mt-1 bg-black/40 px-3 py-1 rounded-full inline-block backdrop-blur-sm">
+                {formatDuration(callDuration)}
+              </p>
             </div>
           </motion.div>
         )}

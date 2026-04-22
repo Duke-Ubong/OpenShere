@@ -4,7 +4,7 @@ import {
   Heart, MessageSquare, RefreshCw, MapPin, 
   Link as LinkIcon, Share2, ArrowLeft, Calendar, 
   LogOut, Verified, User, Zap, Grid, Trash2, Send, Loader2,
-  BarChart2
+  BarChart2, Phone, Video
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '../firebase';
@@ -13,6 +13,7 @@ import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestor
 interface ProfileViewProps {
   user: any;
   posts: any[];
+  isOwnProfile?: boolean;
   onEdit: () => void;
   onLogout: () => void;
   onBack: () => void;
@@ -20,11 +21,15 @@ interface ProfileViewProps {
   onLikePost?: (postId: string, isLiked: boolean) => void;
   onReVibePost?: (post: any) => void;
   onCommentPost?: (postId: string, content: string) => void;
+  onStartDM: (userId: string) => void;
+  onStartCall: (userId: string) => void;
+  onStartVideoCall: (userId: string) => void;
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({ 
-  user, posts, onEdit, onLogout, onBack, 
-  onDeletePost, onLikePost, onReVibePost, onCommentPost 
+  user, posts, isOwnProfile = true, onEdit, onLogout, onBack, 
+  onDeletePost, onLikePost, onReVibePost, onCommentPost,
+  onStartDM, onStartCall, onStartVideoCall
 }) => {
   const [activeTab, setActiveTab] = useState<'Posts' | 'Media' | 'Likes'>('Posts');
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | null>(null);
@@ -156,6 +161,31 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
 
           <div className="flex gap-2 pt-16 md:pt-24 translate-y-2">
+            {!isOwnProfile && (
+              <>
+                <button 
+                  onClick={() => onStartDM(user?.id)}
+                  className="p-2.5 border border-outline-variant/30 rounded-full hover:bg-surface-container transition-colors active:scale-95 text-on-surface"
+                  title="Direct Message"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => onStartCall(user?.id)}
+                  className="p-2.5 border border-outline-variant/30 rounded-full hover:bg-surface-container transition-colors active:scale-95 text-on-surface"
+                  title="Audio Call"
+                >
+                  <Phone className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => onStartVideoCall(user?.id)}
+                  className="p-2.5 border border-outline-variant/30 rounded-full hover:bg-surface-container transition-colors active:scale-95 text-on-surface"
+                  title="Video Call"
+                >
+                  <Video className="w-5 h-5" />
+                </button>
+              </>
+            )}
             <button 
               onClick={handleShare}
               className="p-2.5 border border-outline-variant/30 rounded-full hover:bg-surface-container transition-colors active:scale-95"
@@ -163,19 +193,30 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             >
               <Share2 className="w-5 h-5" />
             </button>
-            <button 
-              onClick={onEdit}
-              className="px-6 py-2 border border-outline-variant/30 rounded-full font-black text-sm hover:bg-surface-container transition-colors active:scale-95"
-            >
-              Edit profile
-            </button>
-            <button 
-              onClick={handleLogoutClick}
-              className="p-2.5 bg-error/10 border border-error/20 rounded-full hover:bg-error/20 text-error transition-colors active:scale-95"
-              title="Sign Out"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            {isOwnProfile ? (
+              <>
+                <button 
+                  onClick={onEdit}
+                  className="px-6 py-2 border border-outline-variant/30 rounded-full font-black text-sm hover:bg-surface-container transition-colors active:scale-95"
+                >
+                  Edit profile
+                </button>
+                <button 
+                  onClick={handleLogoutClick}
+                  className="p-2.5 bg-error/10 border border-error/20 rounded-full hover:bg-error/20 text-error transition-colors active:scale-95"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={() => toast.success(`Node linked: Following ${user?.username}`)}
+                className="px-6 py-2 bg-on-surface text-surface rounded-full font-black text-sm hover:opacity-90 transition-all active:scale-95"
+              >
+                Follow
+              </button>
+            )}
           </div>
         </div>
 
@@ -186,7 +227,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               <h2 className="text-xl font-black text-on-surface">{user?.username || 'operative_pulse'}</h2>
               {user?.is_verified && <Verified className="w-4 h-4 text-primary-container" />}
             </div>
-            <p className="text-sm text-outline font-medium">@{user?.email?.split('@')[0] || 'unknown_node'}</p>
+            <p 
+              className="text-sm font-mono font-bold tracking-tighter text-primary-container drop-shadow-[0_0_8px_rgba(0,255,170,0.3)] bg-primary-container/10 px-2 py-0.5 rounded-md inline-block mt-1 animate-pulse-slow"
+            >
+              @{user?.handle || user?.username?.toLowerCase().replace(/\s+/g, '_') || user?.email?.split('@')[0] || 'unknown_node'}
+            </p>
           </div>
 
           <p className="text-[15px] leading-relaxed text-on-surface-variant font-medium max-w-lg">

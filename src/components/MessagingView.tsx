@@ -16,6 +16,8 @@ import { db } from '../firebase';
 import { toast } from 'sonner';
 import { CallSignals } from './CallManager';
 
+import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
+
 interface ChatMessage {
   id: string;
   senderId: string;
@@ -61,6 +63,7 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [otherUserTyping, setOtherUserTyping] = useState<boolean>(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -279,6 +282,10 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
     }, 2000);
   };
 
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+  };
+
   const handleSendMessage = async (e: React.FormEvent, customText?: string) => {
     e.preventDefault();
     const messageText = customText || newMessage.trim();
@@ -288,6 +295,7 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
       setNewMessage('');
       setIsTyping(false);
       sendTypingStatus(false);
+      setShowEmojiPicker(false);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     }
 
@@ -647,12 +655,27 @@ const MessagingView: React.FC<MessagingViewProps> = ({ currentUser, onNavigateTo
                 <form onSubmit={handleSendMessage} className="flex items-center gap-3 max-w-6xl mx-auto w-full">
                   {/* The Capsule */}
                   <div 
-                    className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-[28px] py-1 shadow-inner focus-within:border-primary-container/30 transition-all duration-300"
+                    className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-[28px] py-1 shadow-inner focus-within:border-primary-container/30 transition-all duration-300 relative"
                   >
+                    {showEmojiPicker && (
+                      <div className="absolute bottom-full mb-4 left-0 z-50 shadow-2xl rounded-2xl overflow-hidden scale-90 sm:scale-100 origin-bottom-left">
+                        <div className="fixed inset-0" onClick={() => setShowEmojiPicker(false)}></div>
+                        <div className="relative">
+                          <EmojiPicker 
+                            onEmojiClick={handleEmojiClick}
+                            theme={Theme.DARK}
+                            width={320}
+                            height={400}
+                            skinTonesDisabled
+                            searchPlaceHolder="Search vibes..."
+                          />
+                        </div>
+                      </div>
+                    )}
                     <button 
                       type="button" 
-                      onClick={() => toast.success('Emoji picker activated', { duration: 1000 })}
-                      className="p-2 md:p-2.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-all active:scale-90 flex-shrink-0"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={`p-2 md:p-2.5 hover:bg-surface-container rounded-full transition-all active:scale-90 flex-shrink-0 ${showEmojiPicker ? 'text-primary-container bg-surface-container' : 'text-outline hover:text-on-surface'}`}
                     >
                       <Smile className="w-5 h-5 md:w-6 md:h-6" />
                     </button>

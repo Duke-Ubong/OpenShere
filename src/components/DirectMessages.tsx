@@ -4,6 +4,7 @@ import { X, Send, User, MessageSquare, ChevronLeft, Smile, Paperclip, Camera, Mi
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
+import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
 import { CallSignals } from './CallManager';
 
 interface Message {
@@ -43,6 +44,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
   const [otherUser, setOtherUser] = useState<any>(null);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [otherUserTyping, setOtherUserTyping] = useState<boolean>(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const otherTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -155,6 +157,10 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
     }, 2000);
   };
 
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !activeConversationId) return;
@@ -163,6 +169,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
     setNewMessage('');
     setIsTyping(false);
     sendTypingStatus(false);
+    setShowEmojiPicker(false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     try {
@@ -299,8 +306,27 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({
         {activeConversationId && (
           <div className="px-3 py-3 border-t border-[#3A4A40]/20 bg-[#141414]">
             <form onSubmit={handleSendMessage} className="flex items-center gap-2 max-w-xl mx-auto">
-              <div className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-full px-2 py-1 shadow-inner">
-                <button type="button" className="p-1.5 text-outline hover:text-on-surface transition-all">
+              <div className="flex-1 flex items-center bg-surface-container-high border border-outline-variant/10 rounded-full px-2 py-1 shadow-inner relative">
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full mb-4 left-0 z-50 shadow-2xl rounded-2xl overflow-hidden scale-90 sm:scale-100 origin-bottom-left">
+                    <div className="fixed inset-0" onClick={() => setShowEmojiPicker(false)}></div>
+                    <div className="relative">
+                      <EmojiPicker 
+                        onEmojiClick={handleEmojiClick}
+                        theme={Theme.DARK}
+                        width={280}
+                        height={350}
+                        skinTonesDisabled
+                        searchPlaceHolder="Search..."
+                      />
+                    </div>
+                  </div>
+                )}
+                <button 
+                  type="button" 
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className={`p-1.5 transition-all ${showEmojiPicker ? 'text-primary' : 'text-outline hover:text-on-surface'}`}
+                >
                   <Smile className="w-5 h-5" />
                 </button>
                 <input 
